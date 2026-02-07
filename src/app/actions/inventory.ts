@@ -19,8 +19,7 @@ export async function addMasterService(formData: FormData) {
     if (!name) return { error: 'Service name is required' };
 
     try {
-        db.prepare('INSERT INTO services (name, category, base_price) VALUES (?, ?, ?)')
-            .run(name, category || 'General', basePrice);
+        await db.query('INSERT INTO services (name, category, base_price) VALUES ($1, $2, $3)', [name, category || 'General', basePrice]);
 
         revalidatePath('/dashboard/inventory');
         return { success: true };
@@ -39,8 +38,7 @@ export async function updateMasterService(formData: FormData) {
     const basePrice = Number(formData.get('basePrice')) || 0;
 
     try {
-        db.prepare('UPDATE services SET name = ?, category = ?, base_price = ? WHERE id = ?')
-            .run(name, category, basePrice, id);
+        await db.query('UPDATE services SET name = $1, category = $2, base_price = $3 WHERE id = $4', [name, category, basePrice, id]);
 
         revalidatePath('/dashboard/inventory');
         return { success: true };
@@ -55,12 +53,13 @@ export async function deleteMasterService(id: number) {
 
     try {
         // Check if used in any job
-        const usage = db.prepare('SELECT COUNT(*) as count FROM job_card_services WHERE service_id = ?').get(id) as { count: number };
-        if (usage.count > 0) {
+        const usageRes = await db.query('SELECT COUNT(*) as count FROM job_card_services WHERE service_id = $1', [id]);
+        const usage = usageRes.rows[0];
+        if (Number(usage.count) > 0) {
             return { error: 'Cannot delete: This service is currently used in active/past job cards.' };
         }
 
-        db.prepare('DELETE FROM services WHERE id = ?').run(id);
+        await db.query('DELETE FROM services WHERE id = $1', [id]);
         revalidatePath('/dashboard/inventory');
         return { success: true };
     } catch (err) {
@@ -86,13 +85,15 @@ export async function addMasterPart(formData: FormData) {
     const totalValue = unitPrice * stockQuantity;
 
     try {
-        db.prepare('INSERT INTO parts (name, part_no, unit_price, stock_quantity, total_value, brand, compatibility) VALUES (?, ?, ?, ?, ?, ?, ?)')
-            .run(name, partNo || null, unitPrice, stockQuantity, totalValue, brand || null, compatibility || null);
+        await db.query(
+            'INSERT INTO parts (name, part_no, unit_price, stock_quantity, total_value, brand, compatibility) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+            [name, partNo || null, unitPrice, stockQuantity, totalValue, brand || null, compatibility || null]
+        );
 
         revalidatePath('/dashboard/inventory');
         return { success: true };
-    } catch (err) {
-        if (err instanceof Error && err.message.includes('UNIQUE')) {
+    } catch (err: any) {
+        if (err.code === '23505') { // Postgres UNIQUE
             return { error: 'Part Number already exists' };
         }
         return { error: 'Failed to add part' };
@@ -113,8 +114,10 @@ export async function updateMasterPart(formData: FormData) {
     const totalValue = unitPrice * stockQuantity;
 
     try {
-        db.prepare('UPDATE parts SET name = ?, part_no = ?, unit_price = ?, stock_quantity = ?, total_value = ?, brand = ?, compatibility = ? WHERE id = ?')
-            .run(name, partNo, unitPrice, stockQuantity, totalValue, brand, compatibility, id);
+        await db.query(
+            'UPDATE parts SET name = $1, part_no = $2, unit_price = $3, stock_quantity = $4, total_value = $5, brand = $6, compatibility = $7 WHERE id = $8',
+            [name, partNo, unitPrice, stockQuantity, totalValue, brand, compatibility, id]
+        );
 
         revalidatePath('/dashboard/inventory');
         return { success: true };
@@ -129,12 +132,13 @@ export async function deleteMasterPart(id: number) {
 
     try {
         // Check if used in any job
-        const usage = db.prepare('SELECT COUNT(*) as count FROM job_card_parts WHERE part_id = ?').get(id) as { count: number };
-        if (usage.count > 0) {
+        const usageRes = await db.query('SELECT COUNT(*) as count FROM job_card_parts WHERE part_id = $1', [id]);
+        const usage = usageRes.rows[0];
+        if (Number(usage.count) > 0) {
             return { error: 'Cannot delete: This part is currently used in active/past job cards.' };
         }
 
-        db.prepare('DELETE FROM parts WHERE id = ?').run(id);
+        await db.query('DELETE FROM parts WHERE id = $1', [id]);
         revalidatePath('/dashboard/inventory');
         return { success: true };
     } catch (err) {

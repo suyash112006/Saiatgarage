@@ -1,7 +1,26 @@
-import Database from 'better-sqlite3';
+import { Pool } from 'pg';
 
-const db = new Database('garage.db', { verbose: console.log });
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
 
-export default db;
+// Helper to run queries
+export const query = async (text: string, params?: any[]) => {
+    const start = Date.now();
+    try {
+        const res = await pool.query(text, params);
+        const duration = Date.now() - start;
+        // console.log('executed query', { text, duration, rows: res.rowCount });
+        return res;
+    } catch (error) {
+        console.error('Database Error:', error);
+        throw error;
+    }
+};
+
+export default {
+    query
+};

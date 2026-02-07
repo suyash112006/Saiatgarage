@@ -15,12 +15,13 @@ export default async function CreateJobPage(props: {
         redirect('/dashboard/customers'); // Needs a vehicle to start
     }
 
-    const vehicle = db.prepare(`
+    const vehicleRes = await db.query(`
     SELECT v.*, c.name as customer_name, c.id as customer_id 
     FROM vehicles v 
     JOIN customers c ON v.customer_id = c.id 
-    WHERE v.id = ?
-  `).get(searchParams.vehicleId) as any;
+    WHERE v.id = $1
+  `, [searchParams.vehicleId]);
+    const vehicle = vehicleRes.rows[0];
 
     if (!vehicle) {
         return <div className="p-8 text-center text-red-500 font-bold">Vehicle not found</div>;

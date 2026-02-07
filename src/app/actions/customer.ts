@@ -6,9 +6,8 @@ import { revalidatePath } from 'next/cache';
 // Phase 1: Strict Customer Management
 
 export async function getCustomers() {
-    return db.prepare(`
-        SELECT * FROM customers ORDER BY created_at DESC
-    `).all();
+    const res = await db.query('SELECT * FROM customers ORDER BY created_at DESC');
+    return res.rows;
 }
 
 export async function createCustomer(formData: FormData) {
@@ -21,21 +20,19 @@ export async function createCustomer(formData: FormData) {
     }
 
     try {
-        // Check if exists
-        const existing = db.prepare('SELECT id FROM customers WHERE mobile = ?').get(mobile) as { id: number };
-        if (existing) {
-            return { error: 'Customer with this mobile already exists', customerId: existing.id };
-        }
-
-        const stmt = db.prepare('INSERT INTO customers (name, mobile, address) VALUES (?, ?, ?)');
-        const info = stmt.run(name, mobile, address || '');
-        const customerId = info.lastInsertRowid;
+        const res = await db.query(`
+            INSERT INTO customers (name, mobile, address)
+            VALUES ($1, $2, $3)
+            RETURNING id
+        `, [name, mobile, address]);
 
         revalidatePath('/dashboard/customers');
-        return { success: true, customerId };
-    } catch (err: any) {
-        console.error(err);
-        return { error: 'Failed to create customer profile' };
+        return { success: true, customerId: res.rows[0].id };
+    } catch (error: any) {
+        if (error.code === '23505') { // Postgres unique violation code
+            return { error: 'Customer with this mobile already exists' };
+        }
+        return { error: 'Failed to create customer' };
     }
 }
 
@@ -47,12 +44,11 @@ export async function updateCustomer(customer: any) {
     }
 
     try {
-        const stmt = db.prepare('UPDATE customers SET name = ?, mobile = ?, address = ? WHERE id = ?');
-        stmt.run(name, mobile, address || '', id);
+        await db.query('UPDATE customers SET name = $1, mobile = $2, address = $3 WHERE id = $4', [name, mobile, address || '', id]);
         revalidatePath('/dashboard/customers');
         return { success: true };
     } catch (err: any) {
-        if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+        if (err.code === '23505') { // Postgres unique violation code
             return { error: 'Mobile number already exists' };
         }
         return { error: 'Failed to update customer' };
@@ -72,7 +68,7 @@ export async function deleteCustomer(id: number) {
         // And JobCards: FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE.
         // So a simple delete is sufficient and clean.
 
-        db.prepare('DELETE FROM customers WHERE id = ?').run(id);
+        await db.query('DELETE FROM customers WHERE id = $1', [id]);
         revalidatePath('/dashboard/customers');
         return { success: true };
     } catch (err: any) {

@@ -11,7 +11,8 @@ export default async function SettingsPage() {
     const session = await getSession();
     const isAdmin = session?.role === 'admin';
 
-    const users = isAdmin ? db.prepare('SELECT id, name, email, role FROM users').all() : [];
+    const usersRes = isAdmin ? await db.query('SELECT id, name, email, role FROM users') : { rows: [] };
+    const users = usersRes.rows as { id: number, name: string, email: string, role: string }[];
     const settingsData = await getGeneralSettings();
     const settings = settingsData.settings || { garage_name: 'GaragePro', tax_rate: '18' };
 

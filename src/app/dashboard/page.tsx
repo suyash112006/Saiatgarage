@@ -8,26 +8,26 @@ import DashboardSearch from '@/components/DashboardSearch';
 
 async function getAdminStats() {
     // Phase 1: OPEN, IN_PROGRESS, COMPLETED, BILLED
-    const openJobs = db.prepare("SELECT COUNT(*) as count FROM job_cards WHERE status = 'OPEN'").get() as any;
-    const activeJobs = db.prepare("SELECT COUNT(*) as count FROM job_cards WHERE status = 'IN_PROGRESS'").get() as any;
-    const completedMonth = db.prepare("SELECT COUNT(*) as count FROM job_cards WHERE status IN ('COMPLETED', 'BILLED') AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')").get() as any;
+    const openRes = await db.query("SELECT COUNT(*) as count FROM job_cards WHERE status = 'OPEN'");
+    const activeRes = await db.query("SELECT COUNT(*) as count FROM job_cards WHERE status = 'IN_PROGRESS'");
+    const completedRes = await db.query("SELECT COUNT(*) as count FROM job_cards WHERE status IN ('COMPLETED', 'BILLED') AND TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM')");
 
     return {
-        open: openJobs.count || 0,
-        active: activeJobs.count || 0,
-        completed: completedMonth.count || 0
+        open: Number(openRes.rows[0]?.count || 0),
+        active: Number(activeRes.rows[0]?.count || 0),
+        completed: Number(completedRes.rows[0]?.count || 0)
     };
 }
 
 async function getMechanicStats(userId: number) {
-    const open = db.prepare("SELECT COUNT(*) as count FROM job_cards WHERE assigned_mechanic_id = ? AND status = 'OPEN'").get(userId) as any;
-    const inProgress = db.prepare("SELECT COUNT(*) as count FROM job_cards WHERE assigned_mechanic_id = ? AND status = 'IN_PROGRESS'").get(userId) as any;
-    const completed = db.prepare("SELECT COUNT(*) as count FROM job_cards WHERE assigned_mechanic_id = ? AND status = 'COMPLETED'").get(userId) as any;
+    const openRes = await db.query("SELECT COUNT(*) as count FROM job_cards WHERE assigned_mechanic_id = $1 AND status = 'OPEN'", [userId]);
+    const inProgressRes = await db.query("SELECT COUNT(*) as count FROM job_cards WHERE assigned_mechanic_id = $1 AND status = 'IN_PROGRESS'", [userId]);
+    const completedRes = await db.query("SELECT COUNT(*) as count FROM job_cards WHERE assigned_mechanic_id = $1 AND status = 'COMPLETED'", [userId]);
 
     return {
-        open: open.count || 0,
-        inProgress: inProgress.count || 0,
-        completed: completed.count || 0
+        open: Number(openRes.rows[0]?.count || 0),
+        inProgress: Number(inProgressRes.rows[0]?.count || 0),
+        completed: Number(completedRes.rows[0]?.count || 0)
     };
 }
 
@@ -40,15 +40,19 @@ export default async function DashboardPage() {
     const recentActivity = await getRecentActivity();
 
     // Fetch assigned jobs for mechanics
-    const myJobs = !isAdmin ? db.prepare(`
-        SELECT j.*, v.model, v.vehicle_number, c.name as customer_name
-        FROM job_cards j
-        JOIN vehicles v ON j.vehicle_id = v.id
-        JOIN customers c ON j.customer_id = c.id
-        WHERE j.assigned_mechanic_id = ? AND j.status NOT IN ('COMPLETED', 'BILLED')
-        ORDER BY j.created_at DESC
-        LIMIT 5
-    `).all(session.id) as any[] : [];
+    let myJobs: any[] = [];
+    if (!isAdmin) {
+        const myJobsRes = await db.query(`
+            SELECT j.*, v.model, v.vehicle_number, c.name as customer_name
+            FROM job_cards j
+            JOIN vehicles v ON j.vehicle_id = v.id
+            JOIN customers c ON j.customer_id = c.id
+            WHERE j.assigned_mechanic_id = $1 AND j.status NOT IN ('COMPLETED', 'BILLED')
+            ORDER BY j.created_at DESC
+            LIMIT 5
+        `, [session.id]);
+        myJobs = myJobsRes.rows;
+    }
 
     return (
         <div className="dashboard-container">

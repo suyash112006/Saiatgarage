@@ -3,59 +3,35 @@
 import db from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 
-export async function addVehicle(formData: FormData) {
-    const customerId = formData.get('customerId') as string;
+export async function createVehicle(formData: FormData) {
+    const vehicleNumber = formData.get('vehicleNumber') as string;
     const model = formData.get('model') as string;
-    const rawVehicleNumber = formData.get('vehicleNumber') as string;
-    const lastKm = formData.get('lastKm');
+    const customerId = formData.get('customerId');
 
-    if (!rawVehicleNumber || !model || !customerId) {
-        return { error: 'Please fill all required fields' };
+    if (!vehicleNumber || !model || !customerId) {
+        return { error: 'All fields are required' };
     }
 
-    // Strict formatting: Uppercase and remove spaces for uniqueness check
-    const vehicleNumber = rawVehicleNumber.trim().toUpperCase().replace(/\s+/g, '');
-
     try {
-        // Explicit check for duplicate
-        const exists = db.prepare("SELECT id FROM vehicles WHERE REPLACE(vehicle_number, ' ', '') = ?").get(vehicleNumber);
-        if (exists) {
-            return { error: `Vehicle ${rawVehicleNumber.toUpperCase()} is already registered in the system.` };
-        }
-
-        const stmt = db.prepare('INSERT INTO vehicles (customer_id, model, vehicle_number, last_km) VALUES (?, ?, ?, ?)');
-        const result = stmt.run(customerId, model, rawVehicleNumber.trim().toUpperCase(), Number(lastKm) || 0);
-
-        console.log('✅ Vehicle added successfully:', result);
+        await db.query(`
+            INSERT INTO vehicles (vehicle_number, model, customer_id)
+            VALUES ($1, $2, $3)
+        `, [vehicleNumber, model, customerId]);
 
         revalidatePath(`/dashboard/customers/${customerId}`);
         return { success: true };
-    } catch (err: any) {
-        console.error('❌ Vehicle creation error:', {
-            error: err.message,
-            code: err.code,
-            customerId,
-            model,
-            vehicleNumber: rawVehicleNumber,
-            lastKm
-        });
-
-        // Return more specific error messages
-        if (err.message?.includes('UNIQUE constraint')) {
-            return { error: `Vehicle ${rawVehicleNumber.toUpperCase()} is already registered.` };
+    } catch (error: any) {
+        if (error.code === '23505') { // Postgres UNIQUE constraint
+            return { error: 'Vehicle number already exists' };
         }
-        if (err.message?.includes('FOREIGN KEY constraint')) {
-            return { error: 'Invalid customer ID. Please refresh and try again.' };
-        }
-
-        return { error: `Failed to add vehicle: ${err.message}` };
+        return { error: 'Failed to add vehicle' };
     }
 }
 
 export async function deleteVehicle(vehicleId: number, customerId: number) {
     try {
         // Will cascade delete jobs? Yes, schema says ON DELETE CASCADE for jobs.
-        db.prepare('DELETE FROM vehicles WHERE id = ?').run(vehicleId);
+        await db.query('DELETE FROM vehicles WHERE id = $1', [vehicleId]);
         revalidatePath(`/dashboard/customers/${customerId}`);
         return { success: true };
     } catch (err: any) {
@@ -64,20 +40,21 @@ export async function deleteVehicle(vehicleId: number, customerId: number) {
 }
 
 export async function getCustomerDetails(id: string) {
-    const customer = db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
+    const customerRes = await db.query('SELECT * FROM customers WHERE id = $1', [id]);
+    const customer = customerRes.rows[0];
     if (!customer) return null;
 
-    const vehicles = db.prepare('SELECT * FROM vehicles WHERE customer_id = ? ORDER BY created_at DESC').all(id);
+    const vehiclesRes = await db.query('SELECT * FROM vehicles WHERE customer_id = $1 ORDER BY created_at DESC', [id]);
 
     // Fetch recent jobs for all vehicles of this customer
-    const jobs = db.prepare(`
+    const jobsRes = await db.query(`
         SELECT j.*, v.model, v.vehicle_number
         FROM job_cards j
         JOIN vehicles v ON j.vehicle_id = v.id
-        WHERE v.customer_id = ?
+        WHERE v.customer_id = $1
         ORDER BY j.created_at DESC
         LIMIT 10
-    `).all(id);
+    `, [id]);
 
-    return { customer, vehicles, jobs };
+    return { customer, vehicles: vehiclesRes.rows, jobs: jobsRes.rows };
 }

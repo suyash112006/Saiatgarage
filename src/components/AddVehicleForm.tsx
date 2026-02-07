@@ -1,10 +1,10 @@
 'use client';
 
-import { addVehicle } from '@/app/actions/vehicle';
+import { createVehicle } from '@/app/actions/vehicle';
 import { useState } from 'react';
 import { Plus, Save, Car, X, Loader2, Clock } from 'lucide-react';
 
-export default function AddVehicleForm({ customerId }: { customerId: number }) {
+export default function AddVehicleForm({ customerId }: { customerId: string }) {
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -22,7 +22,7 @@ export default function AddVehicleForm({ customerId }: { customerId: number }) {
         const formData = new FormData(event.currentTarget);
         formData.append('customerId', customerId.toString());
 
-        const result = await addVehicle(formData);
+        const result = await createVehicle(formData);
 
         if (result.error) {
             setError(result.error);

@@ -14,52 +14,56 @@ export async function getAnalyticsDashboard() {
     try {
         // Today's revenue - calculate from services and parts
         const today = new Date().toISOString().split('T')[0];
-        const todayRevenue = db.prepare(`
+        const todayRevenueRes = await db.query(`
             SELECT COALESCE(SUM(
                 (SELECT COALESCE(SUM(price * quantity), 0) FROM job_card_services WHERE job_id = j.id) +
                 (SELECT COALESCE(SUM(price * quantity), 0) FROM job_card_parts WHERE job_id = j.id)
             ), 0) as total
             FROM job_cards j
             JOIN invoices i ON j.id = i.job_id
-            WHERE DATE(i.created_at) = ?
-        `).get(today) as { total: number };
+            WHERE DATE(i.created_at) = $1
+        `, [today]);
+        const todayRevenue = todayRevenueRes.rows[0];
 
         // This month's revenue
         const thisMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-        const monthRevenue = db.prepare(`
+        const monthRevenueRes = await db.query(`
             SELECT COALESCE(SUM(
                 (SELECT COALESCE(SUM(price * quantity), 0) FROM job_card_services WHERE job_id = j.id) +
                 (SELECT COALESCE(SUM(price * quantity), 0) FROM job_card_parts WHERE job_id = j.id)
             ), 0) as total
             FROM job_cards j
             JOIN invoices i ON j.id = i.job_id
-            WHERE strftime('%Y-%m', i.created_at) = ?
-        `).get(thisMonth) as { total: number };
+            WHERE TO_CHAR(i.created_at, 'YYYY-MM') = $1
+        `, [thisMonth]);
+        const monthRevenue = monthRevenueRes.rows[0];
 
         // Total completed jobs
-        const completedJobs = db.prepare(`
+        const completedJobsRes = await db.query(`
             SELECT COUNT(*) as count
             FROM job_cards
             WHERE status = 'BILLED'
-        `).get() as { count: number };
+        `);
+        const completedJobs = completedJobsRes.rows[0];
 
         // Repeat customers (customers with more than 1 job)
-        const repeatCustomers = db.prepare(`
+        const repeatCustomersRes = await db.query(`
             SELECT COUNT(DISTINCT customer_id) as count
             FROM (
                 SELECT customer_id, COUNT(*) as job_count
                 FROM job_cards
                 WHERE status = 'BILLED'
                 GROUP BY customer_id
-                HAVING job_count > 1
-            )
-        `).get() as { count: number };
+                HAVING COUNT(*) > 1
+            ) as subquery
+        `);
+        const repeatCustomers = repeatCustomersRes.rows[0];
 
         return {
-            todayRevenue: todayRevenue.total,
-            monthRevenue: monthRevenue.total,
-            completedJobs: completedJobs.count,
-            repeatCustomers: repeatCustomers.count
+            todayRevenue: Number(todayRevenue?.total || 0),
+            monthRevenue: Number(monthRevenue?.total || 0),
+            completedJobs: Number(completedJobs?.count || 0),
+            repeatCustomers: Number(repeatCustomers?.count || 0)
         };
     } catch (err: any) {
         console.error('Analytics dashboard error:', err);
@@ -75,7 +79,7 @@ export async function getDailyRevenue(date: string) {
     if (session?.role !== 'admin') return { error: 'Admin access required' };
 
     try {
-        const result = db.prepare(`
+        const resultRes = await db.query(`
             SELECT 
                 DATE(i.created_at) as date,
                 COUNT(DISTINCT i.id) as invoice_count,
@@ -85,9 +89,10 @@ export async function getDailyRevenue(date: string) {
                 ) as total_revenue
             FROM invoices i
             JOIN job_cards j ON i.job_id = j.id
-            WHERE DATE(i.created_at) = ?
+            WHERE DATE(i.created_at) = $1
             GROUP BY DATE(i.created_at)
-        `).get(date);
+        `, [date]);
+        const result = resultRes.rows[0];
 
         return { data: result || { date, invoice_count: 0, total_revenue: 0 } };
     } catch (err: any) {
@@ -106,7 +111,7 @@ export async function getMonthlyRevenue(year: number, month: number) {
     try {
         const yearMonth = `${year}-${String(month).padStart(2, '0')}`;
 
-        const dailyBreakdown = db.prepare(`
+        const dailyBreakdownRes = await db.query(`
             SELECT 
                 DATE(i.created_at) as date,
                 COUNT(DISTINCT i.id) as invoice_count,
@@ -116,12 +121,13 @@ export async function getMonthlyRevenue(year: number, month: number) {
                 ) as daily_total
             FROM invoices i
             JOIN job_cards j ON i.job_id = j.id
-            WHERE strftime('%Y-%m', i.created_at) = ?
+            WHERE TO_CHAR(i.created_at, 'YYYY-MM') = $1
             GROUP BY DATE(i.created_at)
             ORDER BY date
-        `).all(yearMonth);
+        `, [yearMonth]);
+        const dailyBreakdown = dailyBreakdownRes.rows;
 
-        const monthTotal = db.prepare(`
+        const monthTotalRes = await db.query(`
             SELECT 
                 COUNT(DISTINCT i.id) as total_invoices,
                 SUM(
@@ -130,8 +136,9 @@ export async function getMonthlyRevenue(year: number, month: number) {
                 ) as total_revenue
             FROM invoices i
             JOIN job_cards j ON i.job_id = j.id
-            WHERE strftime('%Y-%m', i.created_at) = ?
-        `).get(yearMonth) as { total_invoices: number, total_revenue: number };
+            WHERE TO_CHAR(i.created_at, 'YYYY-MM') = $1
+        `, [yearMonth]);
+        const monthTotal = monthTotalRes.rows[0];
 
         return {
             dailyBreakdown,
@@ -151,18 +158,19 @@ export async function getMechanicPerformance() {
     if (session?.role !== 'admin') return { error: 'Admin access required' };
 
     try {
-        const performance = db.prepare(`
+        const performanceRes = await db.query(`
             SELECT 
                 u.id,
                 u.name,
                 COUNT(j.id) as jobs_completed,
-                ROUND(AVG(JULIANDAY(j.completed_at) - JULIANDAY(j.started_at)), 2) as avg_days
+                ROUND(AVG(EXTRACT(EPOCH FROM (j.completed_at - j.started_at)) / 86400)::numeric, 2) as avg_days
             FROM users u
             LEFT JOIN job_cards j ON u.id = j.assigned_mechanic_id AND j.status = 'BILLED'
             WHERE u.role = 'mechanic' AND u.is_active = 1
             GROUP BY u.id, u.name
             ORDER BY jobs_completed DESC
-        `).all();
+        `);
+        const performance = performanceRes.rows;
 
         return { data: performance };
     } catch (err: any) {
@@ -179,7 +187,7 @@ export async function getPopularServices() {
     if (session?.role !== 'admin') return { error: 'Admin access required' };
 
     try {
-        const services = db.prepare(`
+        const servicesRes = await db.query(`
             SELECT 
                 jcs.service_name,
                 COUNT(*) as usage_count,
@@ -190,7 +198,8 @@ export async function getPopularServices() {
             GROUP BY jcs.service_name
             ORDER BY usage_count DESC
             LIMIT 10
-        `).all();
+        `);
+        const services = servicesRes.rows;
 
         return { data: services };
     } catch (err: any) {
@@ -207,7 +216,7 @@ export async function getRepeatCustomers() {
     if (session?.role !== 'admin') return { error: 'Admin access required' };
 
     try {
-        const customers = db.prepare(`
+        const customersRes = await db.query(`
             SELECT 
                 c.id,
                 c.name,
@@ -222,9 +231,10 @@ export async function getRepeatCustomers() {
             JOIN job_cards j ON c.id = j.customer_id
             WHERE j.status = 'BILLED'
             GROUP BY c.id, c.name, c.mobile
-            HAVING total_visits > 1
+            HAVING COUNT(j.id) > 1
             ORDER BY total_visits DESC, total_spent DESC
-        `).all();
+        `);
+        const customers = customersRes.rows;
 
         return { data: customers };
     } catch (err: any) {

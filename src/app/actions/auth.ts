@@ -13,7 +13,8 @@ export async function loginAction(formData: FormData) {
     }
 
     try {
-        const user = db.prepare('SELECT * FROM users WHERE (email = ? OR username = ?) AND is_active = 1').get(email, email) as any;
+        const res = await db.query('SELECT * FROM users WHERE (email = $1 OR username = $1) AND is_active = 1', [email]);
+        const user = res.rows[0];
 
         if (!user || user.password !== password) {
             return { error: 'Invalid credentials or account inactive' };
@@ -57,13 +58,12 @@ export async function signupAction(formData: FormData) {
     }
 
     try {
-        const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
-        if (existing) {
+        const existingRes = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+        if (existingRes.rows.length > 0) {
             return { error: 'Email already exists' };
         }
 
-        db.prepare('INSERT INTO users (name, email, password, role, is_verified) VALUES (?, ?, ?, ?, ?)')
-            .run(name, email, password, 'mechanic', 1);
+        await db.query('INSERT INTO users (name, email, password, role, is_verified) VALUES ($1, $2, $3, $4, $5)', [name, email, password, 'mechanic', 1]);
 
         return { success: true };
     } catch (err) {

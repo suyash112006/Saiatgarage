@@ -18,13 +18,15 @@ async function getJobs(status?: string, role?: string, userId?: number) {
     const whereClauses = [];
     const params = [];
 
+    let paramIdx = 1;
+
     if (status && status !== 'ALL') {
-        whereClauses.push(`j.status = ?`);
+        whereClauses.push(`j.status = $${paramIdx++}`);
         params.push(status);
     }
 
     if (role === 'mechanic' && userId) {
-        whereClauses.push(`j.assigned_mechanic_id = ?`);
+        whereClauses.push(`j.assigned_mechanic_id = $${paramIdx++}`);
         params.push(userId);
     }
 
@@ -34,7 +36,8 @@ async function getJobs(status?: string, role?: string, userId?: number) {
 
     query += ` ORDER BY j.created_at DESC `;
 
-    return db.prepare(query).all(...params);
+    const res = await db.query(query, params);
+    return res.rows;
 }
 
 function StatusBadge({ status }: { status: string }) {

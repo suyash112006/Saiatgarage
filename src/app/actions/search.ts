@@ -9,33 +9,36 @@ export async function searchGeneral(query: string) {
 
   try {
     // Search Customers
-    const customers = db.prepare(`
+    const customersRes = await db.query(`
       SELECT id, name, mobile as phone, address, 'customer' as type,
              (SELECT id FROM job_cards WHERE customer_id = customers.id ORDER BY id DESC LIMIT 1) as latest_job_id
       FROM customers 
-      WHERE name LIKE ? OR mobile LIKE ?
+      WHERE name ILIKE $1 OR mobile ILIKE $1
       LIMIT 5
-    `).all(searchTerm, searchTerm) as any[];
+    `, [searchTerm]);
+    const customers = customersRes.rows;
 
     // Search Vehicles
-    const vehicles = db.prepare(`
+    const vehiclesRes = await db.query(`
       SELECT v.id, v.vehicle_number, v.model, c.name as owner_name, c.id as owner_id, c.mobile, c.address, 'vehicle' as type,
              (SELECT id FROM job_cards WHERE vehicle_id = v.id ORDER BY id DESC LIMIT 1) as latest_job_id
       FROM vehicles v
       JOIN customers c ON v.customer_id = c.id
-      WHERE v.vehicle_number LIKE ?
+      WHERE v.vehicle_number ILIKE $1
       LIMIT 5
-    `).all(searchTerm) as any[];
+    `, [searchTerm]);
+    const vehicles = vehiclesRes.rows;
 
     // Search Job Cards (by ID or Vehicle)
-    const jobs = db.prepare(`
+    const jobsRes = await db.query(`
       SELECT j.id, j.status, v.vehicle_number, c.name as customer_name, c.mobile, c.address, 'job' as type
       FROM job_cards j
       JOIN vehicles v ON j.vehicle_id = v.id
       JOIN customers c ON j.customer_id = c.id
-      WHERE v.vehicle_number LIKE ? OR CAST(j.id AS TEXT) LIKE ?
+      WHERE v.vehicle_number ILIKE $1 OR CAST(j.id AS TEXT) ILIKE $1
       LIMIT 5
-    `).all(searchTerm, searchTerm) as any[];
+    `, [searchTerm]);
+    const jobs = jobsRes.rows;
 
     return [...customers, ...vehicles, ...jobs];
   } catch (err) {
@@ -46,7 +49,7 @@ export async function searchGeneral(query: string) {
 
 export async function getRecentActivity() {
   try {
-    const recents = db.prepare(`
+    const recentsRes = await db.query(`
       SELECT 
         c.id, 
         c.name, 
@@ -57,7 +60,8 @@ export async function getRecentActivity() {
       FROM customers c
       ORDER BY c.id DESC
       LIMIT 5
-    `).all() as any[];
+    `);
+    const recents = recentsRes.rows;
 
     return recents;
   } catch (err) {

@@ -6,9 +6,10 @@ import { updateJobTotals } from '@/lib/job-utils';
 
 export async function getGeneralSettings() {
     try {
-        const rows = db.prepare('SELECT key, value FROM settings').all() as any[];
+        const res = await db.query('SELECT key, value FROM settings');
+        const rows = res.rows;
         const settings: Record<string, string> = {};
-        rows.forEach(row => {
+        rows.forEach((row: any) => {
             settings[row.key] = row.value;
         });
         return { settings };
@@ -23,13 +24,22 @@ export async function updateGeneralSettings(formData: FormData) {
     const taxRate = formData.get('taxRate') as string;
 
     try {
-        db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('garage_name', garageName);
-        db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('tax_rate', taxRate);
+        const queries = [
+            `INSERT INTO settings (key, value) VALUES ('garage_name', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+            `INSERT INTO settings (key, value) VALUES ('tax_rate', $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`
+        ];
+
+        // Postgres doesn't support INSERT OR REPLACE. Use ON CONFLICT.
+        // Assuming 'key' is PRIMARY KEY or UNIQUE
+        await db.query(queries[0], [garageName]);
+        await db.query(queries[1], [taxRate]);
 
         // Auto-update totals for all active jobs to reflect new Tax Rate
-        const activeJobs = db.prepare("SELECT id FROM job_cards WHERE status IN ('OPEN', 'IN_PROGRESS')").all() as { id: number }[];
+        const activeJobsRes = await db.query("SELECT id FROM job_cards WHERE status IN ('OPEN', 'IN_PROGRESS')");
+        const activeJobs = activeJobsRes.rows;
+
         for (const job of activeJobs) {
-            updateJobTotals(job.id);
+            await updateJobTotals(job.id);
         }
 
         revalidatePath('/dashboard/settings');

@@ -3,7 +3,38 @@
 import db from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/app/actions/auth';
-import { updateJobTotals } from '@/lib/job-utils';
+
+// Internal Helper to Recalculate Job Totals
+async function calculateJobTotals(jobId: string | number) {
+    // Sum Services
+    const serviceRes = await db.query(`
+        SELECT SUM(price * quantity) as total FROM job_card_services WHERE job_id = $1
+    `, [jobId]);
+    const serviceTotal = Number(serviceRes.rows[0]?.total) || 0;
+
+    // Sum Parts
+    const partRes = await db.query(`
+        SELECT SUM(price * quantity) as total FROM job_card_parts WHERE job_id = $1
+    `, [jobId]);
+    const partTotal = Number(partRes.rows[0]?.total) || 0;
+
+    // Get Tax Rate
+    const taxRes = await db.query("SELECT value FROM settings WHERE key = 'tax_rate'");
+    const taxRate = parseFloat(taxRes.rows[0]?.value || '18');
+
+    const taxAmount = ((serviceTotal + partTotal) * taxRate) / 100;
+    const grandTotal = serviceTotal + partTotal + taxAmount;
+
+    // Update Job Card
+    await db.query(`
+        UPDATE job_cards 
+        SET total_services_amount = $1,
+            total_parts_amount = $2,
+            tax_amount = $3,
+            grand_total = $4
+        WHERE id = $5
+    `, [serviceTotal, partTotal, taxAmount, grandTotal, jobId]);
+}
 
 export async function createJob(formData: FormData) {
     const session = await getSession();
@@ -17,7 +48,8 @@ export async function createJob(formData: FormData) {
     if (!vehicleId) return { error: 'Missing Vehicle ID' };
 
     try {
-        const vehicle = db.prepare('SELECT customer_id, last_km FROM vehicles WHERE id = ?').get(vehicleId) as { customer_id: number, last_km: number };
+        const vehicleRes = await db.query('SELECT customer_id, last_km FROM vehicles WHERE id = $1', [vehicleId]);
+        const vehicle = vehicleRes.rows[0];
         if (!vehicle) return { error: 'Vehicle Invalid' };
 
         // KM Validation
@@ -25,21 +57,17 @@ export async function createJob(formData: FormData) {
             return { error: `KM Reading cannot be less than previous recording (${vehicle.last_km} KM)` };
         }
 
-        const transaction = db.transaction(() => {
-            // 1. Create Job Card
-            const jStmt = db.prepare(`
-                INSERT INTO job_cards (vehicle_id, customer_id, complaints, status, km_reading)
-                VALUES (?, ?, ?, ?, ?)
-            `);
-            const jInfo = jStmt.run(vehicleId, vehicle.customer_id, complaint || '', status, kmReading);
+        // 1. Create Job Card
+        const jobRes = await db.query(`
+            INSERT INTO job_cards (vehicle_id, customer_id, complaints, status, km_reading)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id
+        `, [vehicleId, vehicle.customer_id, complaint || '', status, kmReading]);
 
-            // 2. Update Vehicle KM
-            db.prepare('UPDATE vehicles SET last_km = ? WHERE id = ?').run(kmReading, vehicleId);
+        const jobId = jobRes.rows[0].id;
 
-            return jInfo.lastInsertRowid;
-        });
-
-        const jobId = transaction();
+        // 2. Update Vehicle KM
+        await db.query('UPDATE vehicles SET last_km = $1 WHERE id = $2', [kmReading, vehicleId]);
 
         console.log('✅ Job Card created successfully:', jobId);
 
@@ -47,15 +75,7 @@ export async function createJob(formData: FormData) {
         revalidatePath(`/dashboard/customers/${vehicle.customer_id}`);
         return { success: true, jobId };
     } catch (err: any) {
-        console.error('❌ Job Card creation error:', {
-            error: err.message,
-            code: err.code,
-            vehicleId,
-            complaint,
-            kmReading,
-            status
-        });
-
+        console.error('❌ Job Card creation error:', err);
         return { error: `Failed to create Job Card: ${err.message}` };
     }
 }
@@ -69,8 +89,9 @@ export async function updateJobStatus(jobId: number, status: string) {
         return { error: 'Only Admin can finalize billing' };
     }
 
-    // Strict Transition Logic: Mechanics cannot revert status or skip steps
-    const currentJob = db.prepare('SELECT status, assigned_mechanic_id FROM job_cards WHERE id = ?').get(jobId) as any;
+    // Strict Transition Logic
+    const jobRes = await db.query('SELECT status, assigned_mechanic_id FROM job_cards WHERE id = $1', [jobId]);
+    const currentJob = jobRes.rows[0];
     if (!currentJob) return { error: 'Job not found' };
 
     if (session.role === 'mechanic') {
@@ -80,20 +101,19 @@ export async function updateJobStatus(jobId: number, status: string) {
         if (status === 'BILLED') return { error: 'Only Admin can finalize billing' };
     }
 
-    // Phase 1 Statuses: OPEN, IN_PROGRESS, COMPLETED, BILLED
     const validStatuses = ['OPEN', 'IN_PROGRESS', 'COMPLETED', 'BILLED'];
     if (!validStatuses.includes(status)) return { error: 'Invalid Status' };
 
     try {
-        let stmt;
+        let updateQuery = 'UPDATE job_cards SET status = $1';
         if (status === 'IN_PROGRESS') {
-            stmt = db.prepare('UPDATE job_cards SET status = ?, started_at = CURRENT_TIMESTAMP WHERE id = ?');
+            updateQuery += ', started_at = CURRENT_TIMESTAMP';
         } else if (status === 'COMPLETED') {
-            stmt = db.prepare('UPDATE job_cards SET status = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?');
-        } else {
-            stmt = db.prepare('UPDATE job_cards SET status = ? WHERE id = ?');
+            updateQuery += ', completed_at = CURRENT_TIMESTAMP';
         }
-        stmt.run(status, jobId);
+        updateQuery += ' WHERE id = $2';
+
+        await db.query(updateQuery, [status, jobId]);
         revalidatePath(`/dashboard/jobs/${jobId}`);
         return { success: true };
     } catch (err) {
@@ -123,7 +143,8 @@ export async function updateJob(formData: FormData) {
     if (!jobId) return { error: 'Missing Job ID' };
 
     try {
-        const existingJob = db.prepare('SELECT status, vehicle_id FROM job_cards WHERE id = ?').get(jobId) as { status: string, vehicle_id: number };
+        const jobRes = await db.query('SELECT status, vehicle_id FROM job_cards WHERE id = $1', [jobId]);
+        const existingJob = jobRes.rows[0];
         if (!existingJob) return { error: 'Job not found' };
 
         // 1. Strict Locking Logic - Mechanics are handled by individual actions, 
@@ -132,28 +153,24 @@ export async function updateJob(formData: FormData) {
 
         const isLocked = existingJob.status === 'IN_PROGRESS';
 
-        const updateTx = db.transaction(() => {
-            // 2. Update Customer/Vehicle ONLY IF NOT LOCKED
-            if (!isLocked) {
-                if (customerName && mobile) {
-                    db.prepare('UPDATE customers SET name = ?, mobile = ?, address = ? WHERE id = ?')
-                        .run(customerName, mobile, address || '', customerId);
-                }
-                if (model && vehicleNumber) {
-                    db.prepare('UPDATE vehicles SET model = ?, vehicle_number = ? WHERE id = ?')
-                        .run(model, vehicleNumber, vehicleId);
-                }
+        // 2. Update Customer/Vehicle ONLY IF NOT LOCKED
+        if (!isLocked) {
+            if (customerName && mobile) {
+                await db.query('UPDATE customers SET name = $1, mobile = $2, address = $3 WHERE id = $4',
+                    [customerName, mobile, address || '', customerId]);
             }
+            if (model && vehicleNumber) {
+                await db.query('UPDATE vehicles SET model = $1, vehicle_number = $2 WHERE id = $3',
+                    [model, vehicleNumber, vehicleId]);
+            }
+        }
 
-            // 3. Update Job Card Fields
-            db.prepare('UPDATE job_cards SET complaints = ?, assigned_mechanic_id = ?, status = ?, km_reading = ? WHERE id = ?')
-                .run(complaint || '', mechanicId || null, status, kmReading, jobId);
+        // 3. Update Job Card Fields
+        await db.query('UPDATE job_cards SET complaints = $1, assigned_mechanic_id = $2, status = $3, km_reading = $4 WHERE id = $5',
+            [complaint || '', mechanicId || null, status, kmReading, jobId]);
 
-            // 4. Always sync Vehicle KM with latest Job KM
-            db.prepare('UPDATE vehicles SET last_km = ? WHERE id = ?').run(kmReading, existingJob.vehicle_id);
-        });
-
-        updateTx();
+        // 4. Always sync Vehicle KM with latest Job KM
+        await db.query('UPDATE vehicles SET last_km = $1 WHERE id = $2', [kmReading, existingJob.vehicle_id]);
 
         revalidatePath(`/dashboard/jobs/${jobId}`);
         revalidatePath('/dashboard/customers');
@@ -166,11 +183,13 @@ export async function updateJob(formData: FormData) {
 
 // Phase 2: Services & Parts
 export async function getMasterServices() {
-    return db.prepare('SELECT * FROM services ORDER BY category, name').all();
+    const res = await db.query('SELECT * FROM services ORDER BY category, name');
+    return res.rows;
 }
 
 export async function getMasterParts() {
-    return db.prepare('SELECT * FROM parts ORDER BY name').all();
+    const res = await db.query('SELECT * FROM parts ORDER BY name');
+    return res.rows;
 }
 
 export interface Mechanic {
@@ -179,14 +198,16 @@ export interface Mechanic {
 }
 
 export async function getMechanics(): Promise<Mechanic[]> {
-    return db.prepare("SELECT id, name FROM users WHERE role = 'mechanic' AND is_active = 1").all() as Mechanic[];
+    const res = await db.query("SELECT id, name FROM users WHERE role = 'mechanic' AND is_active = 1");
+    return res.rows as Mechanic[];
 }
 
 export async function assignMechanic(jobId: number, mechanicId: number) {
     const session = await getSession();
     if (session?.role !== 'admin') return { error: 'Admin access required' };
 
-    const job = db.prepare('SELECT status FROM job_cards WHERE id = ?').get(jobId) as any;
+    const jobRes = await db.query('SELECT status FROM job_cards WHERE id = $1', [jobId]);
+    const job = jobRes.rows[0];
     if (!job) return { error: 'Job not found' };
     if (job.status === 'COMPLETED' || job.status === 'BILLED') {
         return { error: 'Cannot reassign completed/billed job' };
@@ -195,21 +216,19 @@ export async function assignMechanic(jobId: number, mechanicId: number) {
     try {
         const mId = mechanicId || null;
 
-        const tx = db.transaction(() => {
-            // Auto-start if OPEN and we are assigning a mechanic (not unassigning)
-            if (job.status === 'OPEN' && mId) {
-                db.prepare(`
-                    UPDATE job_cards 
-                    SET assigned_mechanic_id = ?, status = 'IN_PROGRESS', started_at = CURRENT_TIMESTAMP 
-                    WHERE id = ?
-                `).run(mId, jobId);
-            } else {
-                db.prepare(`
-                    UPDATE job_cards SET assigned_mechanic_id = ? WHERE id = ?
-                `).run(mId, jobId);
-            }
-        });
-        tx();
+        // Auto-start if OPEN and we are assigning a mechanic (not unassigning)
+        if (job.status === 'OPEN' && mId) {
+            await db.query(`
+                UPDATE job_cards 
+                SET assigned_mechanic_id = $1, status = 'IN_PROGRESS', started_at = CURRENT_TIMESTAMP 
+                WHERE id = $2
+            `, [mId, jobId]);
+        } else {
+            await db.query(`
+                UPDATE job_cards SET assigned_mechanic_id = $1 WHERE id = $2
+            `, [mId, jobId]);
+        }
+
         revalidatePath(`/dashboard/jobs/${jobId}`);
         return { success: true };
     } catch (err: any) {
@@ -230,23 +249,22 @@ export async function addJobService(formData: FormData) {
     if (!jobId || !serviceId) return { error: 'Invalid data' };
 
     try {
-        const service = db.prepare('SELECT name FROM services WHERE id = ?').get(serviceId) as { name: string };
+        const serviceRes = await db.query('SELECT name FROM services WHERE id = $1', [serviceId]);
+        const service = serviceRes.rows[0];
 
-        const tx = db.transaction(() => {
-            const existing = db.prepare('SELECT id, quantity FROM job_card_services WHERE job_id = ? AND service_id = ?').get(jobId, serviceId) as { id: number, quantity: number };
+        const existingRes = await db.query('SELECT id, quantity FROM job_card_services WHERE job_id = $1 AND service_id = $2', [jobId, serviceId]);
+        const existing = existingRes.rows[0];
 
-            if (existing) {
-                db.prepare('UPDATE job_card_services SET quantity = quantity + ?, price = ? WHERE id = ?').run(quantity, price, existing.id);
-            } else {
-                db.prepare(`
-                    INSERT INTO job_card_services (job_id, service_id, service_name, price, quantity)
-                    VALUES (?, ?, ?, ?, ?)
-                `).run(jobId, serviceId, service.name, price, quantity);
-            }
+        if (existing) {
+            await db.query('UPDATE job_card_services SET quantity = quantity + $1, price = $2 WHERE id = $3', [quantity, price, existing.id]);
+        } else {
+            await db.query(`
+                INSERT INTO job_card_services (job_id, service_id, service_name, price, quantity)
+                VALUES ($1, $2, $3, $4, $5)
+            `, [jobId, serviceId, service.name, price, quantity]);
+        }
 
-            updateJobTotals(jobId);
-        });
-        tx();
+        await calculateJobTotals(jobId);
 
         revalidatePath(`/dashboard/jobs/${jobId}`);
         return { success: true };
@@ -261,11 +279,9 @@ export async function removeJobService(jobId: number, itemId: number) {
     if (!session) return { error: 'Unauthorized' };
 
     try {
-        const tx = db.transaction(() => {
-            db.prepare('DELETE FROM job_card_services WHERE id = ? AND job_id = ?').run(itemId, jobId);
-            updateJobTotals(jobId);
-        });
-        tx();
+        await db.query('DELETE FROM job_card_services WHERE id = $1 AND job_id = $2', [itemId, jobId]);
+        await calculateJobTotals(jobId);
+
         revalidatePath(`/dashboard/jobs/${jobId}`);
         return { success: true };
     } catch (err) {
@@ -284,37 +300,29 @@ export async function addJobPart(formData: FormData) {
     const quantity = Number(formData.get('quantity')) || 1;
 
     try {
-        const part = db.prepare('SELECT name, part_no, stock_quantity FROM parts WHERE id = ?').get(partId) as { name: string, part_no: string, stock_quantity: number };
+        const partRes = await db.query('SELECT name, part_no, stock_quantity FROM parts WHERE id = $1', [partId]);
+        const part = partRes.rows[0];
 
-        const tx = db.transaction(() => {
-            // Check sufficiency
-            const currentStock = part.stock_quantity; // This is a snapshot read, in a real concurency scenario we need better locking, but for SQLite this is mostly serial.
-            // Actually, we should check stock.
-            // Note: If updating existing, we only need to check if we have enough for the *additional* quantity.
-            // But wait, the form sends the *total* quantity desired? OR the quantity to ADD?
-            // The form says "Quantity", usually implies "Add this many".
+        if (part.stock_quantity < quantity) {
+            throw new Error(`Insufficient stock. Only ${part.stock_quantity} available.`);
+        }
 
-            if (part.stock_quantity < quantity) {
-                throw new Error(`Insufficient stock. Only ${part.stock_quantity} available.`);
-            }
+        const existingRes = await db.query('SELECT id, quantity FROM job_card_parts WHERE job_id = $1 AND part_id = $2', [jobId, partId]);
+        const existing = existingRes.rows[0];
 
-            const existing = db.prepare('SELECT id, quantity FROM job_card_parts WHERE job_id = ? AND part_id = ?').get(jobId, partId) as { id: number, quantity: number };
+        if (existing) {
+            await db.query('UPDATE job_card_parts SET quantity = quantity + $1, price = $2 WHERE id = $3', [quantity, price, existing.id]);
+        } else {
+            await db.query(`
+                INSERT INTO job_card_parts (job_id, part_id, part_name, part_no, price, quantity)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [jobId, partId, part.name, part.part_no, price, quantity]);
+        }
 
-            if (existing) {
-                db.prepare('UPDATE job_card_parts SET quantity = quantity + ?, price = ? WHERE id = ?').run(quantity, price, existing.id);
-            } else {
-                db.prepare(`
-                    INSERT INTO job_card_parts (job_id, part_id, part_name, part_no, price, quantity)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                `).run(jobId, partId, part.name, part.part_no, price, quantity);
-            }
+        // Deduct stock
+        await db.query('UPDATE parts SET stock_quantity = stock_quantity - $1 WHERE id = $2', [quantity, partId]);
 
-            // Deduct stock
-            db.prepare('UPDATE parts SET stock_quantity = stock_quantity - ? WHERE id = ?').run(quantity, partId);
-
-            updateJobTotals(jobId);
-        });
-        tx();
+        await calculateJobTotals(jobId);
 
         revalidatePath(`/dashboard/jobs/${jobId}`);
         return { success: true };
@@ -329,15 +337,16 @@ export async function removeJobPart(jobId: number, itemId: number) {
     if (!session) return { error: 'Unauthorized' };
 
     try {
-        const item = db.prepare('SELECT part_id, quantity FROM job_card_parts WHERE id = ?').get(itemId) as { part_id: number, quantity: number };
+        const itemRes = await db.query('SELECT part_id, quantity FROM job_card_parts WHERE id = $1', [itemId]);
+        const item = itemRes.rows[0];
 
-        const tx = db.transaction(() => {
-            db.prepare('DELETE FROM job_card_parts WHERE id = ? AND job_id = ?').run(itemId, jobId);
+        if (item) {
+            await db.query('DELETE FROM job_card_parts WHERE id = $1 AND job_id = $2', [itemId, jobId]);
             // Optional: Restore stock
-            db.prepare('UPDATE parts SET stock_quantity = stock_quantity + ? WHERE id = ?').run(item.quantity, item.part_id);
-            updateJobTotals(jobId);
-        });
-        tx();
+            await db.query('UPDATE parts SET stock_quantity = stock_quantity + $1 WHERE id = $2', [item.quantity, item.part_id]);
+            await calculateJobTotals(jobId);
+        }
+
         revalidatePath(`/dashboard/jobs/${jobId}`);
         return { success: true };
     } catch (err) {
@@ -345,34 +354,32 @@ export async function removeJobPart(jobId: number, itemId: number) {
     }
 }
 
-// function updateJobTotals removed - imported from lib/job-utils
-
 export async function getJobDetails(id: number) {
-    const job = db.prepare(`
+    const jobRes = await db.query(`
     SELECT j.*, j.complaints as complaint,
            c.name as customer_name, c.mobile, c.address,
            v.model, v.vehicle_number, v.last_km
     FROM job_cards j
     JOIN customers c ON j.customer_id = c.id
     JOIN vehicles v ON j.vehicle_id = v.id
-    WHERE j.id = ?
-  `).get(id) as any;
+    WHERE j.id = $1
+  `, [id]);
+    const job = jobRes.rows[0];
 
     if (!job) return null;
 
-    const services = db.prepare('SELECT * FROM job_card_services WHERE job_id = ?').all(id) as any[];
-    const parts = db.prepare('SELECT * FROM job_card_parts WHERE job_id = ?').all(id) as any[];
+    const servicesRes = await db.query('SELECT * FROM job_card_services WHERE job_id = $1', [id]);
+    const partsRes = await db.query('SELECT * FROM job_card_parts WHERE job_id = $1', [id]);
 
-    return { job, services, parts };
+    return { job, services: servicesRes.rows, parts: partsRes.rows };
 }
 
 export async function deleteJobCard(jobId: number) {
     const session = await getSession();
     if (session?.role !== 'admin') return { error: 'Admin access required' };
 
-    // Permanent delete for Phase 1 cleanliness
     try {
-        db.prepare('DELETE FROM job_cards WHERE id = ?').run(jobId);
+        await db.query('DELETE FROM job_cards WHERE id = $1', [jobId]);
         revalidatePath('/dashboard/jobs');
         return { success: true };
     } catch (err) {
@@ -384,11 +391,13 @@ export async function updateMechanicNotes(jobId: number, notes: string) {
     const session = await getSession();
     if (!session) return { error: 'Unauthorized' };
 
-    const job = db.prepare('SELECT status FROM job_cards WHERE id = ?').get(jobId) as any;
+    const jobRes = await db.query('SELECT status FROM job_cards WHERE id = $1', [jobId]);
+    const job = jobRes.rows[0];
+
     if (job?.status === 'BILLED') return { error: 'Cannot edit notes after billing' };
 
     try {
-        db.prepare('UPDATE job_cards SET mechanic_notes = ? WHERE id = ?').run(notes, jobId);
+        await db.query('UPDATE job_cards SET mechanic_notes = $1 WHERE id = $2', [notes, jobId]);
         revalidatePath(`/dashboard/jobs/${jobId}`);
         return { success: true };
     } catch (err) {

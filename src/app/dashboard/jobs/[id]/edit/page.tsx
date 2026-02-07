@@ -27,7 +27,8 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
     const isLocked = job.status === 'IN_PROGRESS';
 
     // Fetch real mechanics/admins for the dropdown
-    const mechanics = db.prepare("SELECT id, name FROM users WHERE role = 'mechanic' OR role = 'admin'").all() as { id: number, name: string }[];
+    const mechanicsRes = await db.query("SELECT id, name FROM users WHERE role = 'mechanic' OR role = 'admin'");
+    const mechanics = mechanicsRes.rows as { id: number, name: string }[];
 
     return (
         <div className="dashboard-container">
