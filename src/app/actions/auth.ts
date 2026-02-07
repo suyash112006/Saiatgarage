@@ -13,14 +13,26 @@ export async function loginAction(formData: FormData) {
     }
 
     try {
-        const res = await db.query('SELECT * FROM users WHERE (email = $1 OR username = $1) AND is_active = 1', [email]);
+        // Use a more resilient query for the active status
+        const res = await db.query('SELECT id, name, email, username, password, role, is_active FROM users WHERE (email = $1 OR username = $1)', [email]);
         const user = res.rows[0];
 
-        if (!user || user.password !== password) {
+        // PostgreSQL might return is_active as boolean or integer depending on how it was created
+        const isActive = user && (user.is_active === 1 || user.is_active === true || user.is_active === '1');
+
+        if (!user || !isActive || user.password !== password) {
             return { error: 'Invalid credentials or account inactive' };
         }
 
-        const session = JSON.stringify({ id: user.id, name: user.name, role: user.role, email: user.email, username: user.username });
+        // Safe serialization: Ensure no BigInts and handle potential nulls
+        const sessionData = {
+            id: typeof user.id === 'bigint' ? Number(user.id) : user.id,
+            name: user.name,
+            role: user.role,
+            email: user.email,
+            username: user.username
+        };
+        const session = JSON.stringify(sessionData);
         const cookieStore = await cookies();
         cookieStore.set('session', session, { httpOnly: true, path: '/' });
 
@@ -63,7 +75,7 @@ export async function signupAction(formData: FormData) {
             return { error: 'Email already exists' };
         }
 
-        await db.query('INSERT INTO users (name, email, password, role, is_verified) VALUES ($1, $2, $3, $4, $5)', [name, email, password, 'mechanic', 1]);
+        await db.query('INSERT INTO users (name, email, password, role, is_active) VALUES ($1, $2, $3, $4, $5)', [name, email, password, 'mechanic', 1]);
 
         return { success: true };
     } catch (err) {
