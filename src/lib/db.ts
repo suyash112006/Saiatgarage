@@ -11,20 +11,16 @@ console.log('DB ENGINE:', process.env.DATABASE_URL ? 'POSTGRES' : 'SQLITE');
 console.log('-----------------------');
 
 export const getDbProvider = () => {
+    // If we are on Vercel, we MUST use Postgres. No exceptions.
+    if (process.env.VERCEL) {
+        return 'postgres';
+    }
+
     const url = process.env.DATABASE_URL;
-
-    // In Vercel or production-like environments, we MUST use Postgres
-    const isPostgresForced = process.env.VERCEL || process.env.NODE_ENV === 'production';
-
     if (url && (url.startsWith('postgresql://') || url.startsWith('postgres://'))) {
         if (!url.includes('[YOUR-PASSWORD]')) {
             return 'postgres';
         }
-    }
-
-    if (isPostgresForced) {
-        console.error('CRITICAL: DATABASE_URL is missing or invalid in a production environment.');
-        return 'postgres'; // Attempt to use it anyway to get a proper connection error later
     }
 
     return 'sqlite';
