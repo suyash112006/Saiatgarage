@@ -6,21 +6,28 @@ import path from 'path';
 let pool: Pool | null = null;
 let sqliteDb: any = null;
 
-console.log('--- DB ENGINE CHECK ---');
-console.log('DB ENGINE:', process.env.DATABASE_URL ? 'POSTGRES' : 'SQLITE');
-console.log('-----------------------');
+const url = process.env.DATABASE_URL;
+const maskedUrl = url ? url.replace(/:([^@]+)@/, ':****@') : 'NOT DEFINED';
+
+console.log('--- DATABASE DIAGNOSTIC ---');
+console.log('DATABASE_URL:', maskedUrl);
+console.log('ENVIRONMENT:', process.env.NODE_ENV);
+console.log('VERCEL:', !!process.env.VERCEL);
+console.log('---------------------------');
 
 export const getDbProvider = () => {
-    // If we are on Vercel, we MUST use Postgres. No exceptions.
-    if (process.env.VERCEL) {
-        return 'postgres';
-    }
+    // ALWAYS use Postgres if possible, only fallback to SQLite if URL is completely missing
+    // AND we are NOT on Vercel.
+    const isPostgresForced = process.env.VERCEL || process.env.NODE_ENV === 'production';
 
-    const url = process.env.DATABASE_URL;
     if (url && (url.startsWith('postgresql://') || url.startsWith('postgres://'))) {
         if (!url.includes('[YOUR-PASSWORD]')) {
             return 'postgres';
         }
+    }
+
+    if (isPostgresForced) {
+        return 'postgres';
     }
 
     return 'sqlite';
