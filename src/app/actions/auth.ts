@@ -13,8 +13,9 @@ export async function loginAction(formData: FormData) {
     }
 
     try {
-        // Use a more resilient query for the active status
-        const res = await db.query('SELECT id, name, email, username, password, role, is_active FROM users WHERE (email = $1 OR username = $1)', [email]);
+        console.log('Login attempt for:', email);
+        // Use a more resilient query for the active status - Case-Insensitive
+        const res = await db.query('SELECT id, name, email, username, password, role, is_active FROM users WHERE (LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($1))', [email]);
         const user = res.rows[0];
 
         // PostgreSQL might return is_active as boolean or integer depending on how it was created

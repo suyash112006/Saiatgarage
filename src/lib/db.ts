@@ -15,12 +15,15 @@ export const getDbProvider = () => {
 
 const initPostgres = () => {
     if (!pool) {
+        console.log('--- Initializing Postgres Connection Pool ---');
+        console.log('URL defined:', !!process.env.DATABASE_URL);
         pool = new Pool({
             connectionString: process.env.DATABASE_URL,
             ssl: {
                 rejectUnauthorized: false
             }
         });
+        pool.on('error', (err) => console.error('Unexpected pool error:', err));
     }
     return pool;
 };
@@ -28,6 +31,8 @@ const initPostgres = () => {
 const initSqlite = () => {
     if (!sqliteDb) {
         const dbPath = path.resolve(process.cwd(), 'garage.db');
+        console.log('--- Initializing SQLite Connection ---');
+        console.log('DB Path:', dbPath);
         sqliteDb = new Database(dbPath);
     }
     return sqliteDb;
