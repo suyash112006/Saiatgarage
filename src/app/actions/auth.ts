@@ -24,8 +24,9 @@ export async function loginAction(formData: FormData) {
         }
 
         // PostgreSQL might return is_active as boolean or integer depending on how it was created
-        const isActive = user && (user.is_active === 1 || user.is_active === true || user.is_active === '1');
-        console.log('Step 3: isActive check:', isActive);
+        // Normalize using Boolean() for robust comparison
+        const isActive = user && Boolean(user.is_active);
+        console.log('Step 3: isActive check (normalized):', isActive);
 
         const passwordMatch = user && user.password === password;
         console.log('Step 4: Password match:', passwordMatch);
