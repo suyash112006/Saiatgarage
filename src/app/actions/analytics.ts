@@ -1,6 +1,6 @@
 'use server';
 
-import db from '@/lib/db';
+import db, { getDbProvider } from '@/lib/db';
 import { getSession } from '@/app/actions/auth';
 
 /**
@@ -14,6 +14,14 @@ export async function getAnalyticsDashboard() {
     try {
         // Today's revenue - calculate from services and parts
         const today = new Date().toISOString().split('T')[0];
+        const isPostgres = getDbProvider() === 'postgres';
+        // Better: use the existing provider detection in db.ts if we expose it, 
+        // OR just write queries that work in both.
+
+        // DATE() works in both. 
+        // TO_CHAR only works in Postgres. 
+        // SQLite uses strftime('%Y-%m', created_at)
+
         const todayRevenueRes = await db.query(`
             SELECT COALESCE(SUM(
                 (SELECT COALESCE(SUM(price * quantity), 0) FROM job_card_services WHERE job_id = j.id) +
@@ -21,7 +29,7 @@ export async function getAnalyticsDashboard() {
             ), 0) as total
             FROM job_cards j
             JOIN invoices i ON j.id = i.job_id
-            WHERE DATE(i.created_at) = $1
+            WHERE ${isPostgres ? 'DATE(i.created_at)' : "strftime('%Y-%m-%d', i.created_at)"} = $1
         `, [today]);
         const todayRevenue = todayRevenueRes.rows[0];
 
@@ -34,7 +42,7 @@ export async function getAnalyticsDashboard() {
             ), 0) as total
             FROM job_cards j
             JOIN invoices i ON j.id = i.job_id
-            WHERE TO_CHAR(i.created_at, 'YYYY-MM') = $1
+            WHERE ${isPostgres ? "TO_CHAR(i.created_at, 'YYYY-MM')" : "strftime('%Y-%m', i.created_at)"} = $1
         `, [thisMonth]);
         const monthRevenue = monthRevenueRes.rows[0];
 
@@ -79,9 +87,12 @@ export async function getDailyRevenue(date: string) {
     if (session?.role !== 'admin') return { error: 'Admin access required' };
 
     try {
+        const isPostgres = getDbProvider() === 'postgres';
+        const dateFunc = isPostgres ? 'DATE(i.created_at)' : "strftime('%Y-%m-%d', i.created_at)";
+
         const resultRes = await db.query(`
             SELECT 
-                DATE(i.created_at) as date,
+                ${dateFunc} as date,
                 COUNT(DISTINCT i.id) as invoice_count,
                 SUM(
                     (SELECT COALESCE(SUM(price * quantity), 0) FROM job_card_services WHERE job_id = j.id) +
@@ -89,8 +100,8 @@ export async function getDailyRevenue(date: string) {
                 ) as total_revenue
             FROM invoices i
             JOIN job_cards j ON i.job_id = j.id
-            WHERE DATE(i.created_at) = $1
-            GROUP BY DATE(i.created_at)
+            WHERE ${dateFunc} = $1
+            GROUP BY ${dateFunc}
         `, [date]);
         const result = resultRes.rows[0];
 
@@ -110,10 +121,13 @@ export async function getMonthlyRevenue(year: number, month: number) {
 
     try {
         const yearMonth = `${year}-${String(month).padStart(2, '0')}`;
+        const isPostgres = getDbProvider() === 'postgres';
+        const dateFunc = isPostgres ? 'DATE(i.created_at)' : "strftime('%Y-%m-%d', i.created_at)";
+        const monthFunc = isPostgres ? "TO_CHAR(i.created_at, 'YYYY-MM')" : "strftime('%Y-%m', i.created_at)";
 
         const dailyBreakdownRes = await db.query(`
             SELECT 
-                DATE(i.created_at) as date,
+                ${dateFunc} as date,
                 COUNT(DISTINCT i.id) as invoice_count,
                 SUM(
                     (SELECT COALESCE(SUM(price * quantity), 0) FROM job_card_services WHERE job_id = j.id) +
@@ -121,8 +135,8 @@ export async function getMonthlyRevenue(year: number, month: number) {
                 ) as daily_total
             FROM invoices i
             JOIN job_cards j ON i.job_id = j.id
-            WHERE TO_CHAR(i.created_at, 'YYYY-MM') = $1
-            GROUP BY DATE(i.created_at)
+            WHERE ${monthFunc} = $1
+            GROUP BY ${dateFunc}
             ORDER BY date
         `, [yearMonth]);
         const dailyBreakdown = dailyBreakdownRes.rows;
@@ -136,7 +150,7 @@ export async function getMonthlyRevenue(year: number, month: number) {
                 ) as total_revenue
             FROM invoices i
             JOIN job_cards j ON i.job_id = j.id
-            WHERE TO_CHAR(i.created_at, 'YYYY-MM') = $1
+            WHERE ${monthFunc} = $1
         `, [yearMonth]);
         const monthTotal = monthTotalRes.rows[0];
 
@@ -158,12 +172,16 @@ export async function getMechanicPerformance() {
     if (session?.role !== 'admin') return { error: 'Admin access required' };
 
     try {
+        const isPostgres = getDbProvider() === 'postgres';
+
         const performanceRes = await db.query(`
             SELECT 
                 u.id,
                 u.name,
                 COUNT(j.id) as jobs_completed,
-                ROUND(AVG(EXTRACT(EPOCH FROM (j.completed_at - j.started_at)) / 86400)::numeric, 2) as avg_days
+                ${isPostgres
+                ? 'ROUND(AVG(EXTRACT(EPOCH FROM (j.completed_at - j.started_at)) / 86400)::numeric, 2)'
+                : 'ROUND(AVG(julianday(j.completed_at) - julianday(j.started_at)), 2)'} as avg_days
             FROM users u
             LEFT JOIN job_cards j ON u.id = j.assigned_mechanic_id AND j.status = 'BILLED'
             WHERE u.role = 'mechanic' AND u.is_active = 1

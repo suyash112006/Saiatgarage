@@ -6,8 +6,8 @@ import path from 'path';
 let pool: Pool | null = null;
 let sqliteDb: any = null;
 
-const getDbProvider = () => {
-    if (process.env.DATABASE_URL && process.env.DATABASE_URL !== 'postgresql://postgres:[YOUR-PASSWORD]@db.tfftxnsqoukllkvvmifz.supabase.co:5432/postgres') {
+export const getDbProvider = () => {
+    if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('postgresql://') && !process.env.DATABASE_URL.includes('[YOUR-PASSWORD]')) {
         return 'postgres';
     }
     return 'sqlite';
