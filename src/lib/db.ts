@@ -45,17 +45,25 @@ export const query = async (text: string, params?: any[]) => {
             return res;
         } else {
             const db = initSqlite();
-            // Convert PostgreSQL placeholders ($1, $2) to SQLite (?)
+
+            // Correctly handle PostgreSQL placeholders ($1, $2, etc.) for SQLite
+            // PostgreSQL allows reusing $1 multiple times, but SQLite '?' is positional.
+            // We'll extract the placeholders in order and rebuild the params array.
+            const placeholders = text.match(/\$\d+/g) || [];
+            const sqliteParams = placeholders.map(ph => {
+                const index = parseInt(ph.substring(1)) - 1;
+                return params ? params[index] : undefined;
+            });
             const sqliteQuery = text.replace(/\$\d+/g, '?');
 
             // Handle RETURNING id for SQLite
-            const isInsert = text.toUpperCase().includes('INSERT INTO');
+            const isInsert = text.trim().toUpperCase().startsWith('INSERT INTO');
             const hasReturning = text.toUpperCase().includes('RETURNING ID');
 
             if (isInsert && hasReturning) {
                 const queryWithoutReturning = text.replace(/RETURNING\s+id/i, '').trim();
                 const stmt = db.prepare(queryWithoutReturning.replace(/\$\d+/g, '?'));
-                const result = stmt.run(...(params || []));
+                const result = stmt.run(...sqliteParams);
                 return {
                     rows: [{ id: result.lastInsertRowid }],
                     rowCount: 1
@@ -64,13 +72,13 @@ export const query = async (text: string, params?: any[]) => {
 
             const stmt = db.prepare(sqliteQuery);
             if (text.trim().toUpperCase().startsWith('SELECT')) {
-                const rows = stmt.all(...(params || []));
+                const rows = stmt.all(...sqliteParams);
                 return {
                     rows,
                     rowCount: rows.length
                 };
             } else {
-                const result = stmt.run(...(params || []));
+                const result = stmt.run(...sqliteParams);
                 return {
                     rows: [],
                     rowCount: result.changes
@@ -79,6 +87,8 @@ export const query = async (text: string, params?: any[]) => {
         }
     } catch (error: any) {
         console.error(`Database Error (${provider}):`, error.message);
+        console.error(`Query: ${text}`);
+        console.error(`Params:`, params);
         throw error;
     }
 };

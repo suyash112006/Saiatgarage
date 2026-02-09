@@ -37,8 +37,11 @@ export async function loginAction(formData: FormData) {
         cookieStore.set('session', session, { httpOnly: true, path: '/' });
 
         return { success: true, role: user.role };
-    } catch (err) {
-        console.error(err);
+    } catch (err: any) {
+        console.error('--- Login Action Error ---');
+        console.error('Message:', err.message);
+        if (err.stack) console.error('Stack:', err.stack);
+        console.error('---------------------------');
         return { error: 'An internal error occurred' };
     }
 }
