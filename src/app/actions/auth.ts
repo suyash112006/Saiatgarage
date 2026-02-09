@@ -14,29 +14,19 @@ export async function loginAction(formData: FormData) {
 
     try {
         console.log('Login attempt for:', email);
-        console.log('Step 1: Querying database for:', email);
         const res = await db.query('SELECT id, name, email, username, password, role, is_active FROM users WHERE (LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($1))', [email]);
         const user = res.rows[0];
-        console.log('Step 2: Database result received. User found:', !!user);
-
-        if (user) {
-            console.log('Step 2a: User details - ID type:', typeof user.id, 'is_active type:', typeof user.is_active, 'Value:', user.is_active);
-        }
 
         // PostgreSQL might return is_active as boolean or integer depending on how it was created
         // Normalize using Boolean() for robust comparison
         const isActive = user && Boolean(user.is_active);
-        console.log('Step 3: isActive check (normalized):', isActive);
 
         const passwordMatch = user && user.password === password;
-        console.log('Step 4: Password match:', passwordMatch);
 
         if (!user || !isActive || !passwordMatch) {
-            console.log('Step 4b: Validation failed - returning unauthorized');
             return { error: 'Invalid credentials or account inactive' };
         }
 
-        console.log('Step 5: Preparing session data');
         // Safe serialization: Ensure no BigInts and handle potential nulls
         const sessionData = {
             id: typeof user.id === 'bigint' ? Number(user.id) : user.id,
@@ -47,12 +37,9 @@ export async function loginAction(formData: FormData) {
         };
         const session = JSON.stringify(sessionData);
 
-        console.log('Step 6: Accessing cookies()');
         const cookieStore = await cookies();
-        console.log('Step 7: Setting session cookie');
         cookieStore.set('session', session, { httpOnly: true, path: '/' });
 
-        console.log('Step 8: Login successful');
         return { success: true, role: user.role };
     } catch (err: any) {
         console.error('--- Login Action Error ---');
