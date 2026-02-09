@@ -59,8 +59,7 @@ export async function loginAction(formData: FormData) {
         console.error('Message:', err.message);
         if (err.stack) console.error('Stack:', err.stack);
         console.error('---------------------------');
-        // Return real error to UI for debugging
-        return { error: `Internal Error: ${err.message}${err.stack ? ' | Stack: ' + err.stack.substring(0, 100) + '...' : ''}` };
+        return { error: 'An internal error occurred' };
     }
 }
 

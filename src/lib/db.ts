@@ -8,12 +8,21 @@ let sqliteDb: any = null;
 
 export const getDbProvider = () => {
     const url = process.env.DATABASE_URL;
+
+    // In Vercel or production-like environments, we MUST use Postgres
+    const isPostgresForced = process.env.VERCEL || process.env.NODE_ENV === 'production';
+
     if (url && (url.startsWith('postgresql://') || url.startsWith('postgres://'))) {
-        // Only return 'postgres' if it's not the default setup string with a placeholder
         if (!url.includes('[YOUR-PASSWORD]')) {
             return 'postgres';
         }
     }
+
+    if (isPostgresForced) {
+        console.error('CRITICAL: DATABASE_URL is missing or invalid in a production environment.');
+        return 'postgres'; // Attempt to use it anyway to get a proper connection error later
+    }
+
     return 'sqlite';
 };
 
