@@ -9,12 +9,6 @@ let sqliteDb: any = null;
 const url = process.env.DATABASE_URL;
 const maskedUrl = url ? url.replace(/:([^@]+)@/, ':****@') : 'NOT DEFINED';
 
-console.log('--- DATABASE DIAGNOSTIC ---');
-console.log('DATABASE_URL:', maskedUrl);
-console.log('ENVIRONMENT:', process.env.NODE_ENV);
-console.log('VERCEL:', !!process.env.VERCEL);
-console.log('---------------------------');
-
 export const getDbProvider = () => {
     // ALWAYS use Postgres if possible, only fallback to SQLite if URL is completely missing
     // AND we are NOT on Vercel.
@@ -121,3 +115,10 @@ export const query = async (text: string, params?: any[]) => {
 export default {
     query
 };
+
+console.log('--- DATABASE DIAGNOSTIC ---');
+console.log('DATABASE_URL:', maskedUrl);
+console.log('ENVIRONMENT:', process.env.NODE_ENV);
+console.log('VERCEL:', !!process.env.VERCEL);
+console.log('PROVIDER SELECTED:', getDbProvider());
+console.log('---------------------------');

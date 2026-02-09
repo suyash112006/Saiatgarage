@@ -23,6 +23,16 @@ export async function loginAction(formData: FormData) {
 
         const passwordMatch = user && user.password === password;
 
+        console.log('--- LOGIN DEBUG ---');
+        console.log('Email:', email);
+        console.log('User Found:', !!user);
+        if (user) {
+            console.log('User is_active raw:', user.is_active);
+            console.log('isActive (normalized):', isActive);
+            console.log('Password Match:', passwordMatch);
+        }
+        console.log('-------------------');
+
         if (!user || !isActive || !passwordMatch) {
             return { error: 'Invalid credentials or account inactive' };
         }
