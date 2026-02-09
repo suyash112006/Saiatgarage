@@ -6,6 +6,10 @@ import path from 'path';
 let pool: Pool | null = null;
 let sqliteDb: any = null;
 
+console.log('--- DB ENGINE CHECK ---');
+console.log('DB ENGINE:', process.env.DATABASE_URL ? 'POSTGRES' : 'SQLITE');
+console.log('-----------------------');
+
 export const getDbProvider = () => {
     const url = process.env.DATABASE_URL;
 
