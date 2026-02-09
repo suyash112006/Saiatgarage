@@ -7,8 +7,12 @@ let pool: Pool | null = null;
 let sqliteDb: any = null;
 
 export const getDbProvider = () => {
-    if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('postgresql://') && !process.env.DATABASE_URL.includes('[YOUR-PASSWORD]')) {
-        return 'postgres';
+    const url = process.env.DATABASE_URL;
+    if (url && (url.startsWith('postgresql://') || url.startsWith('postgres://'))) {
+        // Only return 'postgres' if it's not the default setup string with a placeholder
+        if (!url.includes('[YOUR-PASSWORD]')) {
+            return 'postgres';
+        }
     }
     return 'sqlite';
 };
