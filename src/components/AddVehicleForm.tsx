@@ -44,7 +44,7 @@ export default function AddVehicleForm({ customerId }: { customerId: string }) {
     }
 
     return (
-        <div className="card p-0 rounded-2xl shadow-xl shadow-slate-200/50 border-slate-200 bg-white mb-8 overflow-hidden animate-in slide-in-from-top-4 duration-300">
+        <div className="card p-0 rounded-2xl shadow-xl shadow-slate-200/50 border-slate-200 bg-white mb-8 overflow-hidden animate-[pulse_0.5s_ease-out]">
             <div className="modal-header">
                 <div className="modal-header-left">
                     <div className="card-icon">

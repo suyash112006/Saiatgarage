@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { Search, Bell, Moon, Sun } from 'lucide-react';
 import { updateUserTheme } from '@/app/actions/user';
 
+import BackButton from './BackButton';
+
 export default function TopBar({ user }: { user: any }) {
   const [theme, setTheme] = useState(user?.theme || 'light');
 
@@ -33,7 +35,13 @@ export default function TopBar({ user }: { user: any }) {
 
   return (
     <header className="topbar">
-      <div className="topbar-left">
+      <div className="topbar-left flex items-center">
+        <BackButton />
+        <div className="hidden md:block">
+          <h2 className="text-lg font-bold text-slate-800">
+            {/* Dynamic Title could go here, for now it's empty or breadcrumbs handle it */}
+          </h2>
+        </div>
       </div>
 
       <div className="topbar-right">

@@ -146,7 +146,7 @@ export default function AddPartForm({ jobId, masterParts, isAdmin }: AddPartForm
                         </div>
 
                         {selectedPart && (
-                            <div className="grid grid-cols-2 gap-4 animate-in fade-in zoom-in-95 pt-2">
+                            <div className="grid grid-cols-2 gap-4 animate-pulse pt-2">
                                 {isAdmin ? (
                                     <div className="form-field">
                                         <label className="text-[11px] font-bold uppercase text-slate-500 tracking-wider mb-2 block">Unit Price</label>

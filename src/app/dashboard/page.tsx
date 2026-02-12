@@ -8,9 +8,11 @@ import DashboardSearch from '@/components/DashboardSearch';
 
 async function getAdminStats() {
     // Phase 1: OPEN, IN_PROGRESS, COMPLETED, BILLED
-    const openRes = await db.query("SELECT COUNT(*) as count FROM job_cards WHERE status = 'OPEN'");
-    const activeRes = await db.query("SELECT COUNT(*) as count FROM job_cards WHERE status = 'IN_PROGRESS'");
-    const completedRes = await db.query("SELECT COUNT(*) as count FROM job_cards WHERE status IN ('COMPLETED', 'BILLED') AND TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM')");
+    const [openRes, activeRes, completedRes] = await Promise.all([
+        db.query("SELECT COUNT(*) as count FROM job_cards WHERE status = 'OPEN'"),
+        db.query("SELECT COUNT(*) as count FROM job_cards WHERE status = 'IN_PROGRESS'"),
+        db.query("SELECT COUNT(*) as count FROM job_cards WHERE status IN ('COMPLETED', 'BILLED') AND TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM')")
+    ]);
 
     return {
         open: Number(openRes.rows[0]?.count || 0),
@@ -20,9 +22,11 @@ async function getAdminStats() {
 }
 
 async function getMechanicStats(userId: number) {
-    const openRes = await db.query("SELECT COUNT(*) as count FROM job_cards WHERE assigned_mechanic_id = $1 AND status = 'OPEN'", [userId]);
-    const inProgressRes = await db.query("SELECT COUNT(*) as count FROM job_cards WHERE assigned_mechanic_id = $1 AND status = 'IN_PROGRESS'", [userId]);
-    const completedRes = await db.query("SELECT COUNT(*) as count FROM job_cards WHERE assigned_mechanic_id = $1 AND status = 'COMPLETED'", [userId]);
+    const [openRes, inProgressRes, completedRes] = await Promise.all([
+        db.query("SELECT COUNT(*) as count FROM job_cards WHERE assigned_mechanic_id = $1 AND status = 'OPEN'", [userId]),
+        db.query("SELECT COUNT(*) as count FROM job_cards WHERE assigned_mechanic_id = $1 AND status = 'IN_PROGRESS'", [userId]),
+        db.query("SELECT COUNT(*) as count FROM job_cards WHERE assigned_mechanic_id = $1 AND status = 'COMPLETED'", [userId])
+    ]);
 
     return {
         open: Number(openRes.rows[0]?.count || 0),
@@ -36,8 +40,13 @@ export default async function DashboardPage() {
     if (!session) redirect('/login');
 
     const isAdmin = session.role === 'admin';
-    const stats: any = isAdmin ? await getAdminStats() : await getMechanicStats(session.id);
-    const recentActivity = await getRecentActivity();
+
+    // Fetch stats and activity in parallel
+    const [statsResult, recentActivity] = await Promise.all([
+        isAdmin ? getAdminStats() : getMechanicStats(session.id),
+        getRecentActivity()
+    ]);
+    const stats = statsResult as any;
 
     // Fetch assigned jobs for mechanics
     let myJobs: any[] = [];
@@ -84,46 +93,46 @@ export default async function DashboardPage() {
                 <DashboardSearch initialActivity={recentActivity} />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 w-full">
                 {isAdmin ? (
                     <>
-                        <div className="stat-card p-6 rounded-2xl bg-white border-2 border-gray-200 hover:shadow-md transition-shadow">
+                        <div className="stat-card p-6 rounded-2xl bg-white border-2 border-slate-100 hover:shadow-xl hover:border-primary/20 transition-all duration-300">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                                        <Activity size={18} className="text-blue-600" />
+                                    <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100">
+                                        <Activity size={22} className="text-blue-600" />
                                     </div>
                                     <div>
-                                        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-0.5">Open</div>
-                                        <div className="text-2xl font-black text-slate-900">{stats.open}</div>
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Open</div>
+                                        <div className="text-3xl font-black text-slate-900">{stats.open}</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="stat-card p-6 rounded-2xl bg-white border-2 border-gray-200 hover:shadow-md transition-shadow">
+                        <div className="stat-card p-6 rounded-2xl bg-white border-2 border-slate-100 hover:shadow-xl hover:border-primary/20 transition-all duration-300">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
-                                        <Clock size={18} className="text-orange-500" />
+                                    <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center border border-orange-100">
+                                        <Clock size={22} className="text-orange-500" />
                                     </div>
                                     <div>
-                                        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-0.5">In Progress</div>
-                                        <div className="text-2xl font-black text-slate-900">{stats.active}</div>
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">In Progress</div>
+                                        <div className="text-3xl font-black text-slate-900">{stats.active}</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="stat-card p-6 rounded-2xl bg-white border-2 border-gray-200 hover:shadow-md transition-shadow">
+                        <div className="stat-card p-6 rounded-2xl bg-white border-2 border-slate-100 hover:shadow-xl hover:border-primary/20 transition-all duration-300">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-                                        <CheckCircle size={18} className="text-green-600" />
+                                    <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center border border-green-100">
+                                        <CheckCircle size={22} className="text-green-600" />
                                     </div>
                                     <div>
-                                        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-0.5">Monthly Done</div>
-                                        <div className="text-2xl font-black text-slate-900">{stats.completed}</div>
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Monthly Done</div>
+                                        <div className="text-3xl font-black text-slate-900">{stats.completed}</div>
                                     </div>
                                 </div>
                             </div>
@@ -131,40 +140,46 @@ export default async function DashboardPage() {
                     </>
                 ) : (
                     <>
-                        <div className="stat-card p-6 rounded-2xl bg-white border-2 border-gray-200 hover:shadow-md transition-shadow">
+                        <div className="stat-card p-6 rounded-2xl bg-white border-2 border-slate-100 hover:shadow-xl hover:border-primary/20 transition-all duration-300">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                                        <ClipboardList size={18} className="text-blue-600" />
+                                    <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100">
+                                        <ClipboardList size={22} className="text-blue-600" />
                                     </div>
                                     <div>
-                                        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-0.5">Open Jobs</div>
-                                        <div className="text-2xl font-black text-slate-900">{stats.open}</div>
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Open Jobs</div>
+                                        <div className="text-3xl font-black text-slate-900">{stats.open}</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="stat-card p-6 rounded-2xl bg-white border-2 border-gray-200 hover:shadow-md transition-shadow">
+                        <div className="stat-card p-6 rounded-2xl bg-white border-2 border-slate-100 hover:shadow-xl hover:border-primary/20 transition-all duration-300">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
-                                        <Clock size={18} className="text-orange-500" />
+                                    <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center border border-orange-100">
+                                        <Clock size={22} className="text-orange-500" />
                                     </div>
                                     <div>
-                                        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-0.5">In Progress</div>
-                                        <div className="text-2xl font-black text-slate-900">{stats.inProgress}</div>
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">In Progress</div>
+                                        <div className="text-3xl font-black text-slate-900">{stats.inProgress}</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="stat-card p-6 rounded-3xl border border-slate-100 shadow-sm bg-white">
-                            <div className="stat-icon bg-green-50 text-green-600 mb-4">
-                                <CheckCircle size={20} />
+                        <div className="stat-card p-6 rounded-2xl bg-white border-2 border-slate-100 hover:shadow-xl hover:border-primary/20 transition-all duration-300">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center border border-green-100">
+                                        <CheckCircle size={22} className="text-green-600" />
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Completed</div>
+                                        <div className="text-3xl font-black text-slate-900">{stats.completed}</div>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="stat-label text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-1">Completed</div>
-                            <div className="stat-value text-3xl font-black text-slate-900">{stats.completed}</div>
                         </div>
                     </>
                 )}

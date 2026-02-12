@@ -1,7 +1,7 @@
 import { getPopularServices } from '@/app/actions/analytics';
 import { getSession } from '@/app/actions/auth';
 import { redirect } from 'next/navigation';
-import { BarChart3, TrendingUp, DollarSign, ArrowLeft } from 'lucide-react';
+import { BarChart3, TrendingUp, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -37,7 +37,6 @@ export default async function ServicePopularityPage() {
                     <p className="page-subtitle">Top services and revenue contribution</p>
                 </div>
                 <Link href="/dashboard/reports" className="btn btn-outline flex items-center gap-2">
-                    <ArrowLeft size={18} />
                     Back to Reports
                 </Link>
             </div>

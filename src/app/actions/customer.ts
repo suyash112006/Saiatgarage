@@ -15,16 +15,18 @@ export async function createCustomer(formData: FormData) {
     const mobile = formData.get('mobile') as string;
     const address = formData.get('address') as string;
 
-    if (!name || !mobile) {
-        return { error: 'Name and Mobile are required' };
+    if (!name) {
+        return { error: 'Name is required' };
     }
+
+    const dbMobile = mobile?.trim() || null;
 
     try {
         const res = await db.query(`
             INSERT INTO customers (name, mobile, address)
             VALUES ($1, $2, $3)
             RETURNING id
-        `, [name, mobile, address]);
+        `, [name, dbMobile, address]);
 
         revalidatePath('/dashboard/customers');
         return { success: true, customerId: res.rows[0].id };
@@ -39,12 +41,14 @@ export async function createCustomer(formData: FormData) {
 export async function updateCustomer(customer: any) {
     const { id, name, mobile, address } = customer;
 
-    if (!name || !mobile) {
-        return { error: 'Name and Mobile are required' };
+    if (!name) {
+        return { error: 'Name is required' };
     }
 
+    const dbMobile = mobile?.trim() || null;
+
     try {
-        await db.query('UPDATE customers SET name = $1, mobile = $2, address = $3 WHERE id = $4', [name, mobile, address || '', id]);
+        await db.query('UPDATE customers SET name = $1, mobile = $2, address = $3 WHERE id = $4', [name, dbMobile, address || '', id]);
         revalidatePath('/dashboard/customers');
         return { success: true };
     } catch (err: any) {

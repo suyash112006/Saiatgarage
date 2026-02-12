@@ -7,7 +7,7 @@ import {
   LayoutDashboard,
   Users,
   Car,
-  Package,
+  Layers,
   ClipboardList,
   FileText,
   Settings,
@@ -23,7 +23,7 @@ const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Job Board', href: '/dashboard/jobs', icon: ClipboardList },
   { name: 'Customers', href: '/dashboard/customers', icon: Users },
-  { name: 'Inventory', href: '/dashboard/inventory', icon: Package },
+  { name: 'Inventory', href: '/dashboard/inventory', icon: Layers },
   { name: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];

@@ -155,9 +155,10 @@ export async function updateJob(formData: FormData) {
 
         // 2. Update Customer/Vehicle ONLY IF NOT LOCKED
         if (!isLocked) {
-            if (customerName && mobile) {
+            if (customerName) {
+                const dbMobile = mobile?.trim() || null;
                 await db.query('UPDATE customers SET name = $1, mobile = $2, address = $3 WHERE id = $4',
-                    [customerName, mobile, address || '', customerId]);
+                    [customerName, dbMobile, address || '', customerId]);
             }
             if (model && vehicleNumber) {
                 await db.query('UPDATE vehicles SET model = $1, vehicle_number = $2 WHERE id = $3',

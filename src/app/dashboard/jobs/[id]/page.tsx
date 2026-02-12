@@ -5,7 +5,7 @@ import AssignMechanicDropdown from '@/components/AssignMechanicDropdown';
 import { getSession } from '@/app/actions/auth';
 import Link from 'next/link';
 import {
-    ArrowLeft, Clock, FileText,
+    Clock, FileText,
     Printer, User, Phone, MapPin,
     Zap, ClipboardList, Car, Trash2, Pencil, CheckCircle,
     IndianRupee, Cpu, Settings, Trash, Receipt, Lock, X
@@ -473,7 +473,6 @@ export default async function JobDetailPage(props: { params: Params }) {
 
             <div className="flex justify-center mt-8 mb-4">
                 <Link href="/dashboard/jobs" className="text-[13px] font-semibold text-slate-500 hover:text-primary transition-colors inline-flex items-center gap-2">
-                    <ArrowLeft size={14} />
                     Return to Job Board
                 </Link>
             </div>

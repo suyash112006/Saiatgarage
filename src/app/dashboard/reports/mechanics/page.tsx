@@ -1,7 +1,7 @@
 import { getMechanicPerformance } from '@/app/actions/analytics';
 import { getSession } from '@/app/actions/auth';
 import { redirect } from 'next/navigation';
-import { Wrench, TrendingUp, Clock, ArrowLeft } from 'lucide-react';
+import { Wrench, TrendingUp, Clock } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -37,7 +37,6 @@ export default async function MechanicPerformancePage() {
                     <p className="page-subtitle">Jobs completed and performance metrics</p>
                 </div>
                 <Link href="/dashboard/reports" className="btn btn-outline flex items-center gap-2">
-                    <ArrowLeft size={18} />
                     Back to Reports
                 </Link>
             </div>

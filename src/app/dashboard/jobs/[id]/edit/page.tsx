@@ -1,6 +1,6 @@
 import { getJobDetails } from '@/app/actions/job';
 import Link from 'next/link';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import db from '@/lib/db';
 import { redirect, notFound } from 'next/navigation';
 import EditJobForm from '@/components/EditJobForm';
@@ -49,7 +49,6 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
                 </div>
 
                 <Link href={`/dashboard/jobs/${jobId}`} className="btn btn-outline shadow-sm border-slate-200">
-                    <ArrowLeft size={16} className="mr-2" />
                     Back to View
                 </Link>
             </div>

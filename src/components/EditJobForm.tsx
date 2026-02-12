@@ -73,14 +73,13 @@ export default function EditJobForm({ job, mechanics, isLocked }: EditJobFormPro
                         </div>
                     </div>
                     <div className="form-field">
-                        <label>Mobile Number *</label>
+                        <label>Mobile Number</label>
                         <div className={`input-wrapper ${isLocked ? 'opacity-50 pointer-events-none' : ''}`}>
                             <Phone size={16} />
                             <input
                                 type="text"
                                 name="mobile"
                                 defaultValue={job.mobile}
-                                required
                                 readOnly={isLocked}
                             />
                         </div>

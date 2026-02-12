@@ -3,7 +3,6 @@
 import { createCustomer } from '@/app/actions/customer';
 import Link from 'next/link';
 import {
-    ArrowLeft,
     Save,
     User,
     Phone,
@@ -71,7 +70,7 @@ function AddCustomerForm() {
                     </div>
 
                     <div className="form-field">
-                        <label>Mobile Number *</label>
+                        <label>Mobile Number</label>
                         <div className="input-wrapper">
                             <Phone size={16} />
                             <input
@@ -79,7 +78,6 @@ function AddCustomerForm() {
                                 name="mobile"
                                 defaultValue={prefilledMobile}
                                 placeholder="9876543210"
-                                required
                             />
                         </div>
                     </div>
@@ -131,7 +129,6 @@ export default function AddCustomerPage() {
                 </div>
 
                 <Link href="/dashboard/customers" className="btn btn-outline shadow-sm border-slate-200">
-                    <ArrowLeft size={16} className="mr-2" />
                     Back to List
                 </Link>
             </div>

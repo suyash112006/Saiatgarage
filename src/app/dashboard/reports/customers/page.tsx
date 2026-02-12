@@ -1,7 +1,7 @@
 import { getRepeatCustomers } from '@/app/actions/analytics';
 import { getSession } from '@/app/actions/auth';
 import { redirect } from 'next/navigation';
-import { Users, TrendingUp, Calendar, DollarSign, ArrowLeft } from 'lucide-react';
+import { Users, TrendingUp, Calendar, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -37,7 +37,6 @@ export default async function CustomerRetentionPage() {
                     <p className="page-subtitle">Repeat customers and visit frequency</p>
                 </div>
                 <Link href="/dashboard/reports" className="btn btn-outline flex items-center gap-2">
-                    <ArrowLeft size={18} />
                     Back to Reports
                 </Link>
             </div>
@@ -88,7 +87,7 @@ export default async function CustomerRetentionPage() {
                                         <td className="py-5 px-6">
                                             <div>
                                                 <div className="font-black text-slate-900">{customer.name}</div>
-                                                <div className="text-xs text-slate-400">{customer.mobile}</div>
+                                                <div className="text-xs text-slate-400">{customer.mobile || '—'}</div>
                                             </div>
                                         </td>
                                         <td className="py-5 px-6 text-center">

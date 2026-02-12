@@ -1,7 +1,7 @@
 import { getMonthlyRevenue } from '@/app/actions/analytics';
 import { getSession } from '@/app/actions/auth';
 import { redirect } from 'next/navigation';
-import { DollarSign, TrendingUp, Calendar, ArrowLeft } from 'lucide-react';
+import { DollarSign, TrendingUp, Calendar } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -44,7 +44,6 @@ export default async function RevenueReportPage() {
                     </p>
                 </div>
                 <Link href="/dashboard/reports" className="btn btn-outline flex items-center gap-2">
-                    <ArrowLeft size={18} />
                     Back to Reports
                 </Link>
             </div>

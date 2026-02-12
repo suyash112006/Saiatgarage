@@ -140,7 +140,7 @@ export default function AddServiceForm({ jobId, masterServices, isAdmin }: AddSe
                         </div>
 
                         {selectedService && (
-                            <div className="grid grid-cols-2 gap-4 animate-in zoom-in-95 pt-2">
+                            <div className="grid grid-cols-2 gap-4 pt-2 animate-pulse">
                                 {isAdmin ? (
                                     <div className="form-field">
                                         <label className="text-[11px] font-bold uppercase text-slate-500 tracking-wider mb-2 block">Service Price</label>

@@ -49,7 +49,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                                 </tr>
                                 <tr>
                                     <td className="py-2 pr-3 text-slate-600 font-medium">Contact No :</td>
-                                    <td className="py-2 text-slate-700">{invoice.customer_mobile}</td>
+                                    <td className="py-2 text-slate-700">{invoice.customer_mobile || '—'}</td>
                                     <td className="py-2 pr-3 text-slate-600 font-medium">Model :</td>
                                     <td className="py-2 text-slate-700">{invoice.vehicle_model}</td>
                                 </tr>

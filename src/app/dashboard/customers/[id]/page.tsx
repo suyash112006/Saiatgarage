@@ -1,10 +1,6 @@
 import { getCustomerDetails } from '@/app/actions/vehicle';
 import Link from 'next/link';
-import {
-    ArrowLeft, User, Phone, MapPin, Car, Plus, History,
-    Calendar, ChevronRight, ClipboardList, Shield, Pencil,
-    Printer, CalendarDays, ExternalLink, Info, FileText
-} from 'lucide-react';
+import { Phone, MapPin, Trash2, User, Car, Plus, History, Calendar, ChevronRight, ClipboardList, Shield, Pencil, Printer, CalendarDays, ExternalLink, Info, FileText } from 'lucide-react';
 import AddVehicleForm from '@/components/AddVehicleForm';
 import { notFound } from 'next/navigation';
 
@@ -75,7 +71,7 @@ export default async function CustomerDetailPage(props: { params: Params }) {
                                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Mobile Number</label>
                                 <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
                                     <Phone size={16} className="text-slate-400" />
-                                    <span className="font-bold text-slate-900 text-sm">{customer.mobile}</span>
+                                    <span className="font-bold text-slate-900 text-sm">{customer.mobile || 'No mobile documented'}</span>
                                 </div>
                             </div>
                             <div className="form-field">

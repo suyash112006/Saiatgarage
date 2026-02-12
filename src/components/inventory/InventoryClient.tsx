@@ -40,7 +40,10 @@ export default function InventoryClient({
                         <span className="breadcrumb-separator mx-1">/</span>
                         <span className="breadcrumb-item active">Inventory</span>
                     </nav>
-                    <h1 className="page-title">Inventory</h1>
+                    <h1 className="page-title flex items-center gap-3">
+                        <Layers className="text-primary" size={28} />
+                        Inventory
+                    </h1>
                     <p className="page-subtitle">Manage global services and parts inventory</p>
                 </div>
 
@@ -73,7 +76,7 @@ export default function InventoryClient({
                     onClick={() => setTab('library')}
                     className={`tab ${tab === 'library' ? 'active' : ''}`}
                 >
-                    <ClipboardList size={16} />
+                    <Layers size={16} />
                     Part Library
                 </button>
             </div>

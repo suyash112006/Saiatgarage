@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Plus, Trash2, Pencil, Layers, Tag, Wrench, Hash, ClipboardList } from 'lucide-react';
+import { Search, Plus, Trash2, Pencil, Layers, Tag, Wrench, Hash } from 'lucide-react';
 import { deleteMasterPart } from '@/app/actions/inventory';
 
 interface Part {
@@ -66,7 +66,7 @@ export default function PartLibraryList({ initialParts, onEdit }: { initialParts
                                 <td>
                                     <div className="service-cell">
                                         <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400">
-                                            <ClipboardList size={16} />
+                                            <Layers size={16} />
                                         </div>
                                         <span className="font-bold text-slate-900">{part.name}</span>
                                     </div>
@@ -116,7 +116,7 @@ export default function PartLibraryList({ initialParts, onEdit }: { initialParts
             {filtered.length === 0 && (
                 <div className="py-20 text-center">
                     <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-100">
-                        <ClipboardList size={32} />
+                        <Layers size={32} />
                     </div>
                     <h3 className="text-slate-900 text-lg font-semibold mb-2">Library item not found</h3>
                     <p className="text-slate-500 text-base max-w-xs mx-auto">Build your part catalog by adding new items to the library.</p>

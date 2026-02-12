@@ -59,8 +59,8 @@ export default function InventoryModal({
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="modal-container animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <div className="modal-header-left">
                         <div className="card-icon">

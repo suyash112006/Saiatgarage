@@ -1,6 +1,6 @@
 import db from '@/lib/db';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import CreateJobForm from '@/components/CreateJobForm';
 
@@ -47,7 +47,6 @@ export default async function CreateJobPage(props: {
                 </div>
 
                 <Link href={`/dashboard/customers/${vehicle.customer_id}`} className="btn btn-outline border-slate-200 shadow-sm">
-                    <ArrowLeft size={16} className="mr-2" />
                     Back to Customer
                 </Link>
             </div>

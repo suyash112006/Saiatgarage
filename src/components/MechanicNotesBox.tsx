@@ -28,11 +28,9 @@ export default function MechanicNotesBox({ jobId, initialNotes, isLocked }: { jo
                     </div>
                     Internal Mechanic Notes
                 </h4>
-                {saved && (
-                    <span className="text-[10px] font-bold text-green-600 flex items-center gap-1 animate-in fade-in slide-in-from-right-2">
-                        <CheckCircle size={12} /> Saved
-                    </span>
-                )}
+                <span className="text-[10px] font-bold text-green-600 flex items-center gap-1 animate-pulse">
+                    <CheckCircle size={12} /> Saved
+                </span>
             </div>
 
             <textarea

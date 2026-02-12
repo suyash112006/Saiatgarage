@@ -41,7 +41,7 @@ export default function CreateJobForm({ vehicle }: { vehicle: any }) {
     return (
         <form onSubmit={handleSubmit} className="max-w-5xl mx-auto pb-28 md:pb-0">
             {error && (
-                <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm mb-8 flex items-center gap-2 font-medium animate-in fade-in slide-in-from-top-2">
+                <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm mb-8 flex items-center gap-2 font-medium animate-pulse">
                     <AlertCircle size={18} />
                     {error}
                 </div>
