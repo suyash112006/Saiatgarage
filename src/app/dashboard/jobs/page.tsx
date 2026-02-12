@@ -126,9 +126,13 @@ export default async function JobsPage(props: { searchParams: Promise<{ status?:
                             {jobs.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="py-20 text-center">
-                                        <div className="flex flex-col items-center opacity-40">
-                                            <Clock size={48} className="mb-4" />
-                                            <p className="font-bold text-slate-500 uppercase tracking-widest text-xs">No jobs found in this category</p>
+                                        <div className="flex flex-col items-center py-10">
+                                            <div className="text-slate-900 mb-8">
+                                                <Clock size={64} strokeWidth={1.5} />
+                                            </div>
+                                            <p className="text-[#334155] font-black uppercase tracking-[0.2em] text-sm">
+                                                No jobs found in this category
+                                            </p>
                                         </div>
                                     </td>
                                 </tr>

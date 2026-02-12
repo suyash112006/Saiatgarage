@@ -114,12 +114,11 @@ export default function PartLibraryList({ initialParts, onEdit }: { initialParts
             </div>
 
             {filtered.length === 0 && (
-                <div className="py-20 text-center">
-                    <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-100">
-                        <Layers size={32} />
+                <div className="py-24 text-center">
+                    <div className="text-slate-900 mb-8 flex justify-center">
+                        <Layers size={64} strokeWidth={1.5} />
                     </div>
-                    <h3 className="text-slate-900 text-lg font-semibold mb-2">Library item not found</h3>
-                    <p className="text-slate-500 text-base max-w-xs mx-auto">Build your part catalog by adding new items to the library.</p>
+                    <h3 className="text-[#334155] text-sm font-black uppercase tracking-[0.2em]">No library items found</h3>
                 </div>
             )}
         </div>
