@@ -54,7 +54,7 @@ export default function ProfileCard({ user }: ProfileCardProps) {
     };
 
     return (
-        <div className="card">
+        <div className="card flex flex-col h-full">
             <div className="card-header">
                 <div className="header-group">
                     <div className="card-icon">

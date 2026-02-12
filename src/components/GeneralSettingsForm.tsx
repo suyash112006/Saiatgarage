@@ -30,7 +30,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
     }
 
     return (
-        <div className="card">
+        <div className="card flex flex-col h-full">
             <div className="card-header">
                 <div className="card-icon">
                     <Save size={18} />

@@ -30,7 +30,7 @@ export default async function SettingsPage() {
                 </div>
             </div>
 
-            <div className="settings-grid mb-8">
+            <div className="settings-grid items-stretch mb-8">
                 {/* 1. Profile Settings (Left) */}
                 <ProfileCard user={session} />
 
