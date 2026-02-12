@@ -164,13 +164,6 @@ body {
   overflow-x: hidden;
 }
 
-@media (max-width: 768px) {
-  .main-content {
-    padding-bottom: 80px;
-    /* Space for MobileNav */
-  }
-}
-
 /* ✅ Top Bar */
 .topbar {
   height: var(--header-height);
@@ -341,12 +334,6 @@ body {
   gap: 24px;
   max-width: 1100px;
   align-items: stretch;
-}
-
-@media (max-width: 900px) {
-  .settings-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .card-icon {

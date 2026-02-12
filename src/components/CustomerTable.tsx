@@ -45,47 +45,7 @@ export default function CustomerTable({ initialCustomers }: CustomerTableProps) 
                 </div>
             </div>
 
-            {/* Mobile View: Cards */}
-            <div className="md:hidden space-y-4">
-                {filteredCustomers.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                        <User size={48} className="mb-4 opacity-50" />
-                        <p className="font-bold uppercase tracking-widest text-xs">No customers found</p>
-                    </div>
-                ) : (
-                    filteredCustomers.map((customer) => (
-                        <div key={customer.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-3">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h3 className="font-bold text-slate-900">{customer.name}</h3>
-                                    <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mt-1">
-                                        <Phone size={12} />
-                                        {customer.mobile}
-                                    </div>
-                                </div>
-                                <div className="flex gap-2">
-                                    <Link href={`/dashboard/customers/${customer.id}/edit`} className="p-2 bg-slate-50 text-slate-400 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors">
-                                        <Edit size={16} />
-                                    </Link>
-                                    <button onClick={() => handleDelete(customer.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors">
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-                            </div>
-                            {customer.address && (
-                                <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                                    {customer.address}
-                                </div>
-                            )}
-                            <Link href={`/dashboard/customers/${customer.id}`} className="btn btn-outline w-full justify-center text-xs py-2 h-auto">
-                                View Vehicles
-                            </Link>
-                        </div>
-                    ))
-                )}
-            </div>
-
-            <div className="hidden md:block table-responsive">
+            <div className="table-responsive">
                 <table className="data-table">
                     <thead>
                         <tr>

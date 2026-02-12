@@ -107,45 +107,8 @@ export default async function JobsPage(props: { searchParams: Promise<{ status?:
                 ))}
             </div>
 
-            {/* Mobile View: Cards */}
-            <div className="md:hidden space-y-4">
-                {jobs.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                        <Clock size={48} className="mb-4 opacity-50" />
-                        <p className="font-bold uppercase tracking-widest text-xs">No jobs found</p>
-                    </div>
-                ) : (
-                    jobs.map((job: any) => (
-                        <Link href={`/dashboard/jobs/${job.id}`} key={job.id} className="block bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all active:scale-[0.98]">
-                            <div className="flex justify-between items-start mb-3">
-                                <div>
-                                    <div className="text-sm font-black text-slate-900">{job.model}</div>
-                                    <div className="text-xs font-bold text-primary mt-0.5">{job.vehicle_number}</div>
-                                </div>
-                                <StatusBadge status={job.status} />
-                            </div>
-
-                            <div className="flex items-center gap-2 text-xs text-slate-500 font-bold mb-4 pb-4 border-b border-slate-50">
-                                <User size={14} />
-                                {job.customer_name}
-                            </div>
-
-                            <div className="flex justify-between items-center">
-                                <div className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
-                                    <Calendar size={14} />
-                                    {new Date(job.service_date || job.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                                </div>
-                                <div className="text-primary font-bold text-xs flex items-center gap-1">
-                                    View Details <ChevronRight size={14} />
-                                </div>
-                            </div>
-                        </Link>
-                    ))
-                )}
-            </div>
-
-            {/* Desktop View: Table */}
-            <div className="hidden md:block card shadow-sm border-slate-100 rounded-3xl overflow-hidden">
+            {/* Jobs View: Table */}
+            <div className="card shadow-sm border-slate-100 rounded-3xl overflow-hidden">
                 <div className="table-responsive">
                     <table className="data-table">
                         <thead className="bg-slate-50/50 border-b border-slate-100">

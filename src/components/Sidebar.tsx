@@ -45,7 +45,7 @@ export default function Sidebar({ user }: { user?: any }) {
   };
 
   return (
-    <aside className={clsx('sidebar hidden md:flex', { 'collapsed': isCollapsed })}>
+    <aside className={clsx('sidebar flex', { 'collapsed': isCollapsed })}>
       <div className="sidebar-header">
         <div className="logo">
           <Car className="text-primary-600" size={28} />

@@ -1,5 +1,4 @@
 import Sidebar from '@/components/Sidebar';
-import MobileNav from '@/components/MobileNav';
 import TopBar from '@/components/TopBar';
 import { getSession } from '@/app/actions/auth';
 import { redirect } from 'next/navigation';
@@ -24,8 +23,6 @@ export default async function DashboardLayout({
         <TopBar user={session} />
         {children}
       </main>
-
-      <MobileNav user={session} />
     </div>
   );
 }
