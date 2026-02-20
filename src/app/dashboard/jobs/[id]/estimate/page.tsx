@@ -56,6 +56,7 @@ export default async function EstimatePage(props: { params: Promise<{ id: string
     // Prepare share data
     const shareInvoice = {
         id: job.id,
+        job_id: job.id,
         invoice_no: `EST-${job.id}`,
         customer_name: job.customer_name,
         customer_mobile: job.mobile,
