@@ -108,7 +108,7 @@ export default async function CustomerViewWrapper({ customerId }: CustomerViewWr
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2 mb-0.5">
-                                                    <h4 className="text-sm font-bold" style={{ color: 'var(--text-main)' }}>JC-{(j.job_no || j.id).toString().padStart(4, '0')}</h4>
+                                                    <h4 className="text-sm font-bold" style={{ color: 'var(--text-main)' }}>#{(j.job_no || j.id)}</h4>
                                                 </div>
                                                 <div className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>{j.model}</div>
                                             </div>
