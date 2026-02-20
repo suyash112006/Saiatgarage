@@ -70,7 +70,7 @@ body {
 .app-layout {
   display: flex;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -346,17 +346,17 @@ body {
     bottom: 0;
     left: 0;
     width: 100% !important;
-    height: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+    height: 64px !important;
+    height: calc(env(safe-area-inset-bottom, 0px) + 64px) !important;
     flex-direction: row;
     border-right: none;
     border-top: 1px solid var(--border);
-    z-index: 5000;
-    background: rgba(var(--bg-sidebar-rgb), 0.9);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 -4px 20px -5px rgba(0, 0, 0, 0.2);
+    z-index: 99999;
+    background: var(--bg-sidebar) !important;
+    visibility: visible !important;
+    display: flex !important;
     padding: 0;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
   }
 
   .sidebar-header,
@@ -409,8 +409,9 @@ body {
   }
 
   .main-content {
-    height: calc(100vh - 68px);
-    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+    height: 100dvh;
+    padding-bottom: 74px;
+    padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px));
     overflow-y: auto;
   }
 
