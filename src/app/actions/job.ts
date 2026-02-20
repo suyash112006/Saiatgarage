@@ -29,11 +29,11 @@ export async function createJob(formData: FormData) {
             return { error: `KM Reading cannot be less than previous recording (${vehicle.last_km} KM)` };
         }
 
-        // 1. Get next Job Number (safely handle numeric values and skip legacy prefixes)
+        // 1. Get next Job Number (safely handle numeric values and skip legacy/deleted items)
         const lastJobRes = await db.query(`
             SELECT MAX(CAST(job_no AS INTEGER)) as max_no 
             FROM job_cards 
-            WHERE job_no ~ '^[0-9]+$'
+            WHERE job_no ~ '^[0-9]+$' AND deleted_at IS NULL
         `);
         const nextJobNo = (Number(lastJobRes.rows[0]?.max_no) || 0) + 1;
 
