@@ -14,7 +14,9 @@ export async function loginAction(formData: FormData) {
 
     try {
         console.log('Login attempt for:', email);
-        const res = await db.query('SELECT id, name, email, username, password, role, is_active FROM users WHERE (LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($1))', [email]);
+        const start = Date.now();
+        const res = await db.query('SELECT id, name, email, username, password, role, is_active, theme FROM users WHERE (LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($1))', [email]);
+        console.log(`Login DB Query took: ${Date.now() - start}ms`);
         const user = res.rows[0];
 
         // PostgreSQL might return is_active as boolean or integer depending on how it was created
@@ -43,7 +45,8 @@ export async function loginAction(formData: FormData) {
             name: user.name,
             role: user.role,
             email: user.email,
-            username: user.username
+            username: user.username,
+            theme: user.theme || 'light'
         };
         const session = JSON.stringify(sessionData);
 
@@ -53,6 +56,7 @@ export async function loginAction(formData: FormData) {
         return { success: true, role: user.role };
     } catch (err: any) {
         console.error('--- Login Action Error ---');
+        console.error(err);
         console.error('---------------------------');
         return { error: 'An internal error occurred' };
     }

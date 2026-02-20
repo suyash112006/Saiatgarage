@@ -2,11 +2,12 @@
 
 import db from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { createNotification } from './notification';
 
 // Phase 1: Strict Customer Management
 
 export async function getCustomers() {
-    const res = await db.query('SELECT * FROM customers ORDER BY created_at DESC');
+    const res = await db.query('SELECT * FROM customers WHERE deleted_at IS NULL ORDER BY id DESC');
     return res.rows;
 }
 
@@ -29,6 +30,7 @@ export async function createCustomer(formData: FormData) {
         `, [name, dbMobile, address]);
 
         revalidatePath('/dashboard/customers');
+        await createNotification(`New Customer Added: ${name}`, 'CUSTOMER', res.rows[0].id);
         return { success: true, customerId: res.rows[0].id };
     } catch (error: any) {
         if (error.code === '23505') { // Postgres unique violation code
@@ -60,20 +62,11 @@ export async function updateCustomer(customer: any) {
 }
 
 export async function deleteCustomer(id: number) {
-    // Phase 1: Clean Delete
+    // Soft delete: move to Trash (auto-purged after 30 days)
     try {
-        // We rely on ON DELETE CASCADE in schema for vehicles/jobs usually, 
-        // but schema.sql says:
-        // Vehicles -> FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
-        // JobCards -> FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
-        // So deleting customer SHOULD cascade delete vehicles, which cascades delete job cards.
-        // Let's verify schema.sql from Step 952.
-        // Yes: FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE.
-        // And JobCards: FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE.
-        // So a simple delete is sufficient and clean.
-
-        await db.query('DELETE FROM customers WHERE id = $1', [id]);
+        await db.query('UPDATE customers SET deleted_at = NOW() WHERE id = $1', [id]);
         revalidatePath('/dashboard/customers');
+        revalidatePath('/dashboard/trash');
         return { success: true };
     } catch (err: any) {
         console.error(err);

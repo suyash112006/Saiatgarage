@@ -12,11 +12,21 @@ interface ThemeSelectorProps {
 
 export default function ThemeSelector({ userId, initialTheme }: ThemeSelectorProps) {
     const [theme, setTheme] = useState(initialTheme);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        // Sync with document on mount/change
-        document.documentElement.setAttribute('data-theme', theme);
-    }, [theme]);
+        const saved = localStorage.getItem('theme');
+        if (saved) {
+            setTheme(saved);
+        }
+        setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (mounted) {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+    }, [theme, mounted]);
 
     async function handleThemeChange(newTheme: string) {
         setTheme(newTheme);

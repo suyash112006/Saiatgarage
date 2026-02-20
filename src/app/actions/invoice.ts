@@ -82,7 +82,8 @@ export async function getInvoice(invoiceId: number) {
 
     try {
         const invoiceRes = await db.query(`
-            SELECT i.*, j.*, 
+            SELECT i.id as invoice_database_id, i.invoice_no, i.job_id, i.created_at,
+                   j.*, 
                    c.name as customer_name, c.mobile as customer_mobile, c.address as customer_address,
                    v.model as vehicle_model, v.vehicle_number,
                    j.km_reading
@@ -117,18 +118,27 @@ export async function getInvoice(invoiceId: number) {
         const servicesTotal = services.reduce((sum: number, s: any) => sum + (Number(s.price) * Number(s.quantity)), 0);
         const partsTotal = parts.reduce((sum: number, p: any) => sum + (Number(p.price) * Number(p.quantity)), 0);
         const subtotal = servicesTotal + partsTotal;
-        const taxTotal = subtotal * 0.18;
+
+        // Fetch dynamic tax rate
+        const taxSettingRes = await db.query("SELECT value FROM settings WHERE key = 'tax_rate'");
+        const taxValue = taxSettingRes.rows[0]?.value;
+        const taxRate = taxValue ? parseFloat(taxValue) : 18;
+
+        const taxTotal = subtotal * (taxRate / 100);
         const grandTotal = subtotal + taxTotal;
 
         return {
             ...invoice,
+            id: Number(invoice.invoice_database_id),
+            job_id: Number(invoice.job_id),
             services,
             parts,
             servicesTotal,
             partsTotal,
             taxTotal,
             subtotal,
-            grandTotal
+            grandTotal,
+            taxRate
         };
     } catch (err) {
         console.error('Get invoice error:', err);
@@ -160,5 +170,29 @@ export async function getInvoiceByJobId(jobId: number) {
         return res.rows[0] || null;
     } catch (err) {
         return null;
+    }
+}
+
+export async function logInvoiceShare(invoiceId: number, shareMethod: string) {
+    const session = await getSession();
+    if (session?.role !== 'admin') return { error: 'Unauthorized' };
+
+    try {
+        const invoiceRes = await db.query('SELECT invoice_no FROM invoices WHERE id = $1', [invoiceId]);
+        const invoice = invoiceRes.rows[0];
+        if (!invoice) return { error: 'Invoice not found' };
+
+        const message = `Invoice #${invoice.invoice_no} was shared via ${shareMethod.toUpperCase()}`;
+
+        await db.query(`
+            INSERT INTO notifications (message, type, reference_id, recipient_role)
+            VALUES ($1, $2, $3, $4)
+        `, [message, 'JOB', invoiceId, 'admin']);
+
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (err) {
+        console.error('Log invoice share error:', err);
+        return { error: 'Failed to log share' };
     }
 }

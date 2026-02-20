@@ -1,21 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Wrench, Layers, ClipboardList } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Plus, Wrench, Layers, Car } from 'lucide-react';
 import ServiceInventoryList from '@/components/inventory/ServiceInventoryList';
 import PartInventoryList from '@/components/inventory/PartInventoryList';
 import PartLibraryList from '@/components/inventory/PartLibraryList';
+import CarLibraryList from '@/components/inventory/CarLibraryList';
 import InventoryModal from '@/components/inventory/InventoryModal';
 
 export default function InventoryClient({
     initialServices,
     initialParts,
+    initialPartLibrary,
+    initialLibrary,
+    initialBrands,
     initialTab
 }: {
     initialServices: any[],
     initialParts: any[],
+    initialPartLibrary: any[],
+    initialLibrary: any[],
+    initialBrands: any[],
     initialTab: string
 }) {
+    const router = useRouter();
     const [tab, setTab] = useState(initialTab);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any>(null);
@@ -28,6 +37,11 @@ export default function InventoryClient({
     function handleEdit(item: any) {
         setEditingItem(item);
         setIsModalOpen(true);
+    }
+
+    function handleModalClose() {
+        setIsModalOpen(false);
+        router.refresh();
     }
 
     return (
@@ -52,7 +66,7 @@ export default function InventoryClient({
                     className="btn btn-primary flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-primary/25 hover:shadow-xl hover:scale-[1.02] transition-all"
                 >
                     <Plus size={18} />
-                    NEW {tab === 'services' ? 'SERVICE' : 'PART'}
+                    NEW {tab === 'services' ? 'SERVICE' : tab === 'cars' ? 'VEHICLE' : tab === 'library' ? 'LIBRARY PART' : 'PART'}
                 </button>
             </div>
 
@@ -79,19 +93,28 @@ export default function InventoryClient({
                     <Layers size={16} />
                     Part Library
                 </button>
+                <button
+                    onClick={() => setTab('cars')}
+                    className={`tab ${tab === 'cars' ? 'active' : ''}`}
+                >
+                    <Car size={16} />
+                    Car Library
+                </button>
             </div>
 
             <div className="grid grid-cols-1 gap-8">
                 {tab === 'services' && <ServiceInventoryList initialServices={initialServices} onEdit={handleEdit} />}
                 {tab === 'parts' && <PartInventoryList initialParts={initialParts} onEdit={handleEdit} />}
-                {tab === 'library' && <PartLibraryList initialParts={initialParts} onEdit={handleEdit} />}
+                {tab === 'library' && <PartLibraryList libraryParts={initialPartLibrary} onEdit={handleEdit} />}
+                {tab === 'cars' && <CarLibraryList initialLibrary={initialLibrary} onEdit={handleEdit} />}
             </div>
 
             <InventoryModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                type={tab === 'library' ? 'parts' : tab as 'services' | 'parts'}
+                onClose={handleModalClose}
+                type={tab === 'library' ? 'part_library' : tab === 'cars' ? 'cars' : tab as any}
                 initialData={editingItem}
+                brands={initialBrands}
             />
         </div>
     );

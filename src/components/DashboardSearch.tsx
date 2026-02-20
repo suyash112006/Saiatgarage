@@ -55,18 +55,18 @@ export default function DashboardSearch({ initialActivity }: { initialActivity: 
                     className="search-box dashboard-search"
                     animate={{
                         scale: isFocused ? 1.01 : 1,
-                        borderColor: isFocused ? '#3b82f6' : '#e2e8f0',
-                        boxShadow: isFocused ? '0 0 0 4px rgba(59, 130, 246, 0.1)' : '0 1px 2px 0 rgb(0 0 0 / 0.05)'
+                        borderColor: isFocused ? 'var(--primary)' : 'var(--border)',
+                        boxShadow: isFocused ? '0 0 0 4px var(--primary-light)' : '0 1px 2px 0 rgb(0 0 0 / 0.05)'
                     }}
                     whileHover={{
                         scale: isFocused ? 1.01 : 1.005,
-                        boxShadow: isFocused ? '0 0 0 4px rgba(59, 130, 246, 0.1)' : '0 4px 20px -5px rgba(0, 0, 0, 0.1)'
+                        boxShadow: isFocused ? '0 0 0 4px var(--primary-light)' : '0 4px 20px -5px rgba(0, 0, 0, 0.1)'
                     }}
                     style={{
                         borderRadius: '16px',
                         padding: '14px 20px',
-                        border: '1px solid #e2e8f0',
-                        backgroundColor: '#ffffff',
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--bg-card)',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '12px',
@@ -80,7 +80,7 @@ export default function DashboardSearch({ initialActivity }: { initialActivity: 
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
-                                className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"
+                                className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"
                             ></motion.div>
                         ) : (
                             <motion.div
@@ -89,7 +89,7 @@ export default function DashboardSearch({ initialActivity }: { initialActivity: 
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
                             >
-                                <Search size={20} className="text-slate-400" style={{ flexShrink: 0 }} />
+                                <Search size={20} className="text-muted" style={{ flexShrink: 0 }} />
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -97,7 +97,7 @@ export default function DashboardSearch({ initialActivity }: { initialActivity: 
                         style={{
                             fontSize: '15px',
                             fontWeight: 400,
-                            color: '#0f172a',
+                            color: 'var(--text-main)',
                             width: '100%',
                             border: 'none',
                             outline: 'none',
@@ -122,13 +122,14 @@ export default function DashboardSearch({ initialActivity }: { initialActivity: 
                     marginBottom: '24px',
                     width: '100%',
                     overflow: 'hidden',
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05)'
+                    border: '1px solid var(--border)',
+                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05)',
+                    background: 'var(--bg-card)'
                 }}
             >
                 {!showResults && (
-                    <div className="card-header border-b bg-slate-50/50">
-                        <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Recent Activity</h3>
+                    <div className="card-header border-b" style={{ background: 'transparent' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Recent Activity</h3>
                         <Link href="/dashboard/customers" className="btn btn-outline btn-sm" style={{ borderRadius: '12px' }}>View All Customers</Link>
                     </div>
                 )}
@@ -140,16 +141,17 @@ export default function DashboardSearch({ initialActivity }: { initialActivity: 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="empty-state p-6 bg-white flex items-center justify-between"
+                            className="empty-state p-6 flex items-center justify-between"
+                            style={{ background: 'var(--bg-card)' }}
                         >
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-slate-400">
+                                <div className="w-12 h-12 border border-border rounded-lg flex items-center justify-center text-muted" style={{ background: 'var(--bg-card)' }}>
                                     <User size={24} />
                                 </div>
                                 <div>
-                                    <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                                    <h3 className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--text-main)' }}>
                                         Customer Not Found
-                                        <span className="text-xs font-normal text-slate-400">No profile exists for "<span className="font-bold text-slate-900">{query}</span>"</span>
+                                        <span className="text-xs font-normal text-muted">No profile exists for "<span className="font-bold" style={{ color: 'var(--text-main)' }}>{query}</span>"</span>
                                     </h3>
                                 </div>
                             </div>
@@ -167,7 +169,7 @@ export default function DashboardSearch({ initialActivity }: { initialActivity: 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="empty-state p-10 text-center" style={{ color: '#64748b' }}
+                            className="empty-state p-10 text-center" style={{ color: 'var(--text-muted)' }}
                         >
                             No recent activity to show.
                         </motion.div>
@@ -177,25 +179,18 @@ export default function DashboardSearch({ initialActivity }: { initialActivity: 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="w-full bg-white"
+                            className="w-full"
+                            style={{ background: 'var(--bg-card)' }}
                         >
                             {/* Header */}
-                            <div
-                                style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: '2.5fr 2fr 1.5fr',
-                                    backgroundColor: '#f8fafc',
-                                    borderBottom: '1px solid #e2e8f0'
-                                }}
-                            >
-                                <div style={{ padding: '0.75rem 1.5rem', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', borderRight: '1px solid #e2e8f0' }}>Name / Vehicle</div>
-                                <div style={{ padding: '0.75rem 1.5rem', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', borderRight: '1px solid #e2e8f0' }}>Mobile Contact</div>
-                                <div style={{ padding: '0.75rem 1.5rem', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Location</div>
+                            <div className="search-results-header">
+                                <div className="search-header-cell">Name / Vehicle</div>
+                                <div className="search-header-cell">Mobile Contact</div>
+                                <div className="search-header-cell">Location</div>
                             </div>
 
                             {/* Body */}
                             <motion.div
-                                className="bg-white"
                                 initial="hidden"
                                 animate="visible"
                                 variants={{
@@ -252,35 +247,29 @@ function SearchResultRow({ item, isLast }: { item: any, isLast: boolean }) {
 
     return (
         <div
-            className="hover:bg-slate-50 active:bg-slate-100 active:scale-[0.99] transition-all duration-150 cursor-pointer group"
-            style={{
-                display: 'grid',
-                gridTemplateColumns: '2.5fr 2fr 1.5fr',
-                borderBottom: isLast ? 'none' : '1px solid #e2e8f0',
-                transformOrigin: 'center'
-            }}
+            className="search-result-row clickable-row group"
             onClick={() => window.location.href = href}
         >
             {/* Name Column: Avatar + Name */}
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '1rem', padding: '1rem 1.5rem', borderRight: '1px solid #e2e8f0', minWidth: 0 }}>
-                <div style={{ height: '2.25rem', width: '2.25rem', flexShrink: 0, borderRadius: '9999px', backgroundColor: '#dbeafe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.875rem', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', transition: 'transform 0.2s' }}>
+            <div className="search-cell name-cell-wrap">
+                <div className="search-avatar">
                     {initial}
                 </div>
-                <div style={{ fontSize: '14px', fontWeight: 500, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div className="search-name-text">
                     {name}
                 </div>
             </div>
 
             {/* Mobile Column: Icon + Mobile */}
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.75rem', color: '#334155', padding: '1rem 1.5rem', borderRight: '1px solid #e2e8f0', minWidth: 0 }}>
-                <Phone size={16} style={{ color: '#94a3b8', flexShrink: 0 }} />
-                <span style={{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{mobile}</span>
+            <div className="search-cell mobile-cell-wrap">
+                <Phone size={16} className="search-cell-icon" />
+                <span className="search-cell-text">{mobile}</span>
             </div>
 
             {/* Address Column: Icon + Address */}
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.75rem', color: '#64748b', padding: '1rem 1.5rem', minWidth: 0 }}>
-                <MapPin size={16} style={{ color: '#94a3b8', flexShrink: 0 }} />
-                <span style={{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{address}</span>
+            <div className="search-cell address-cell-wrap">
+                <MapPin size={16} className="search-cell-icon" />
+                <span className="search-cell-text">{address}</span>
             </div>
         </div>
     );

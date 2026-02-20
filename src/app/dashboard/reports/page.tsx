@@ -1,8 +1,17 @@
-import { getAnalyticsDashboard } from '@/app/actions/analytics';
 import { getSession } from '@/app/actions/auth';
 import { redirect } from 'next/navigation';
-import { TrendingUp, Users, Wrench, DollarSign, BarChart3, FileText } from 'lucide-react';
 import Link from 'next/link';
+import styles from './reports.module.css';
+import {
+    BarChart3,
+    DollarSign,
+    TrendingUp,
+    Users,
+    Wrench,
+    ArrowRight,
+} from 'lucide-react';
+import { Suspense } from 'react';
+import ReportsSummary from '@/components/reports/ReportsSummary';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,157 +21,192 @@ export default async function ReportsPage() {
         redirect('/dashboard');
     }
 
-    const analytics = await getAnalyticsDashboard();
-
-    if ('error' in analytics) {
-        return (
-            <div className="dashboard-container">
-                <div className="alert alert-error">{analytics.error}</div>
-            </div>
-        );
-    }
-
-    const stats = [
-        {
-            title: "Today's Revenue",
-            value: `₹${analytics.todayRevenue?.toLocaleString() || 0}`,
-            icon: DollarSign,
-            color: 'text-green-600',
-            bgColor: 'bg-green-50',
-            borderColor: 'border-green-200',
-            link: '/dashboard/reports/revenue'
-        },
-        {
-            title: "This Month Revenue",
-            value: `₹${analytics.monthRevenue?.toLocaleString() || 0}`,
-            icon: TrendingUp,
-            color: 'text-blue-600',
-            bgColor: 'bg-blue-50',
-            borderColor: 'border-blue-200',
-            link: '/dashboard/reports/revenue'
-        },
-        {
-            title: "Completed Jobs",
-            value: analytics.completedJobs?.toString() || '0',
-            icon: Wrench,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
-            borderColor: 'border-purple-200',
-            link: '/dashboard/reports/mechanics'
-        },
-        {
-            title: "Repeat Customers",
-            value: analytics.repeatCustomers?.toString() || '0',
-            icon: Users,
-            color: 'text-orange-600',
-            bgColor: 'bg-orange-50',
-            borderColor: 'border-orange-200',
-            link: '/dashboard/reports/customers'
-        }
-    ];
-
     const reports = [
         {
             title: 'Revenue Analysis',
-            description: 'Daily and monthly revenue breakdown with trends',
+            description: 'Daily & monthly breakdown of billed invoices. Track income trends over time.',
+            href: '/dashboard/reports/revenue',
             icon: DollarSign,
-            link: '/dashboard/reports/revenue',
-            color: 'text-green-600'
-        },
-        {
-            title: 'Mechanic Performance',
-            description: 'Jobs completed and performance metrics per mechanic',
-            icon: Wrench,
-            link: '/dashboard/reports/mechanics',
-            color: 'text-blue-600'
-        },
-        {
-            title: 'Service Popularity',
-            description: 'Top services and revenue contribution analysis',
-            icon: BarChart3,
-            link: '/dashboard/reports/services',
-            color: 'text-purple-600'
+            accent: '#16a34a',
+            accentBg: '#f0fdf4',
+            accentBorder: '#bbf7d0',
+            accentIcon: '#dcfce7',
+            tag: 'Finance',
         },
         {
             title: 'Customer Retention',
-            description: 'Repeat customers and visit frequency tracking',
+            description: 'Identify your top repeat customers, visit frequency, and lifetime value.',
+            href: '/dashboard/reports/customers',
             icon: Users,
-            link: '/dashboard/reports/customers',
-            color: 'text-orange-600'
-        }
+            accent: '#2563eb',
+            accentBg: '#eff6ff',
+            accentBorder: '#bfdbfe',
+            accentIcon: '#dbeafe',
+            tag: 'Customers',
+        },
+        {
+            title: 'Service Popularity',
+            description: 'See which services are most in-demand and their revenue contribution.',
+            href: '/dashboard/reports/services',
+            icon: TrendingUp,
+            accent: '#7c3aed',
+            accentBg: '#f5f3ff',
+            accentBorder: '#ddd6fe',
+            accentIcon: '#ede9fe',
+            tag: 'Services',
+        },
+        {
+            title: 'Mechanic Performance',
+            description: 'Jobs completed, average turnaround time, and performance ratings per mechanic.',
+            href: '/dashboard/reports/mechanics',
+            icon: Wrench,
+            accent: '#d97706',
+            accentBg: '#fffbeb',
+            accentBorder: '#fde68a',
+            accentIcon: '#fef3c7',
+            tag: 'Team',
+        },
     ];
+
+    const liveDataBadgeStyle: React.CSSProperties = {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '6px 14px',
+        borderRadius: '99px',
+        fontSize: '11px',
+        fontWeight: 800,
+        letterSpacing: '.06em',
+        textTransform: 'uppercase',
+        background: 'rgba(34, 197, 94, 0.1)',
+        border: '1.5px solid rgba(34, 197, 94, 0.2)',
+        color: '#22c55e',
+    };
 
     return (
         <div className="dashboard-container">
-            <nav className="breadcrumbs text-muted mb-2">
-                <Link href="/dashboard" className="breadcrumb-item hover:text-primary transition-colors">Dashboard</Link>
-                <span className="breadcrumb-separator mx-2">/</span>
-                <span className="breadcrumb-item active text-primary font-bold">Reports & Analytics</span>
-            </nav>
-
+            {/* ── Page Header ── */}
             <div className="page-header mb-8">
                 <div>
+                    <nav className="breadcrumbs">
+                        <span className="breadcrumb-item active">Reports</span>
+                    </nav>
                     <h1 className="page-title">Reports & Analytics</h1>
-                    <p className="page-subtitle text-slate-500">Business intelligence and performance insights</p>
+                    <p className="page-subtitle">Business intelligence and performance insights</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <span style={liveDataBadgeStyle}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                        Live Data
+                    </span>
                 </div>
             </div>
 
-            {/* Overview Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 w-full">
-                {stats.map((stat, index) => (
+            {/* ── KPI Summary Row ── */}
+            <Suspense fallback={<div className="p-10 text-center text-muted">Loading analytics...</div>}>
+                <ReportsSummary />
+            </Suspense>
+
+            {/* ── Section Heading ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                <BarChart3 size={18} color="var(--primary)" />
+                <h2 style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-.01em' }}>
+                    Report Categories
+                </h2>
+            </div>
+
+            {/* ── Report Cards Grid ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
+                {reports.map((report) => (
                     <Link
-                        key={index}
-                        href={stat.link}
-                        className="stat-card p-6 rounded-2xl bg-white border-2 border-slate-100 hover:shadow-xl hover:border-primary/20 transition-all duration-300 group"
+                        key={report.href}
+                        href={report.href}
+                        style={{ textDecoration: 'none' }}
                     >
-                        <div className="flex items-center gap-4">
-                            <div className={`w-12 h-12 rounded-2xl ${stat.bgColor} flex items-center justify-center border ${stat.borderColor} group-hover:scale-110 transition-transform duration-300`}>
-                                <stat.icon size={22} className={stat.color} />
+                        <div
+                            className={`card ${styles.reportCard}`}
+                            style={{
+                                padding: '28px',
+                                borderRadius: '20px',
+                                height: '100%',
+                            }}
+                        >
+                            {/* Card header */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                    <div
+                                        style={{
+                                            width: 52,
+                                            height: 52,
+                                            borderRadius: '14px',
+                                            background: 'rgba(51, 65, 85, 0.05)',
+                                            border: '1.5px solid var(--border)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0,
+                                        }}
+                                    >
+                                        <report.icon size={24} color={report.accent} />
+                                    </div>
+                                    <div>
+                                        <span
+                                            style={{
+                                                fontSize: '11px',
+                                                fontWeight: 800,
+                                                letterSpacing: '.08em',
+                                                textTransform: 'uppercase',
+                                                color: report.accent,
+                                                background: 'rgba(51, 65, 85, 0.05)',
+                                                border: '1px solid var(--border)',
+                                                borderRadius: '6px',
+                                                padding: '2px 8px',
+                                                display: 'inline-block',
+                                                marginBottom: '6px',
+                                            }}
+                                        >
+                                            {report.tag}
+                                        </span>
+                                        <h3 style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-main)', lineHeight: 1.2 }}>
+                                            {report.title}
+                                        </h3>
+                                    </div>
+                                </div>
+                                <div
+                                    style={{
+                                        width: 34,
+                                        height: 34,
+                                        borderRadius: '10px',
+                                        background: 'var(--bg-main)',
+                                        border: '1.5px solid var(--border)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    <ArrowRight size={15} color="var(--text-muted)" />
+                                </div>
                             </div>
-                            <div>
-                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{stat.title}</div>
-                                <div className="text-2xl font-black text-slate-900">{stat.value}</div>
+
+                            {/* Divider */}
+                            <div style={{ height: '1px', background: 'var(--border)', marginBottom: '16px', opacity: 0.5 }} />
+
+                            {/* Description */}
+                            <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.65, fontWeight: 500 }}>
+                                {report.description}
+                            </p>
+
+                            {/* View Report CTA */}
+                            <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '13px', fontWeight: 800, color: report.accent }}>
+                                    View Report
+                                </span>
+                                <ArrowRight size={13} color={report.accent} />
                             </div>
                         </div>
                     </Link>
                 ))}
-            </div>
-
-            {/* Detailed Reports */}
-            <div className="card p-8 rounded-3xl border border-slate-100 shadow-sm">
-                <h2 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                        <FileText size={20} />
-                    </div>
-                    Business Analysis Modules
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {reports.map((report, index) => (
-                        <Link
-                            key={index}
-                            href={report.link}
-                            className="p-6 rounded-2xl border border-slate-100 hover:border-primary/30 hover:shadow-md transition-all group bg-white"
-                        >
-                            <div className="flex items-center gap-5">
-                                <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                                    <report.icon size={22} className={report.color + " group-hover:text-white"} />
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="text-base font-black text-slate-900 mb-0.5">{report.title}</h3>
-                                    <p className="text-xs text-slate-500 font-bold">{report.description}</p>
-                                </div>
-                            </div>
-                        </Link>
-                    ))}
-                </div>
-            </div>
-
-            {/* Info Box */}
-            <div className="mt-6 p-6 bg-blue-50 border border-blue-200 rounded-2xl">
-                <p className="text-sm text-blue-900">
-                    <strong className="font-black">Note:</strong> All reports show data from BILLED jobs only. This ensures accurate financial tracking and business insights.
-                </p>
             </div>
         </div>
     );

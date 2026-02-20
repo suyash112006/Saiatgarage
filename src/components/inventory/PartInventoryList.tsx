@@ -53,11 +53,11 @@ export default function PartInventoryList({ initialParts, onEdit }: { initialPar
                 <table className="data-table">
                     <thead>
                         <tr>
-                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Part Info</th>
-                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Stock (Qua)</th>
-                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Price</th>
-                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Total</th>
-                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Actions</th>
+                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-left" style={{ color: 'var(--text-muted)' }}>Part Info</th>
+                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-center" style={{ color: 'var(--text-muted)' }}>Stock (Qua)</th>
+                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-right" style={{ color: 'var(--text-muted)' }}>Price</th>
+                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-right" style={{ color: 'var(--text-muted)' }}>Total</th>
+                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-center" style={{ color: 'var(--text-muted)' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -66,7 +66,7 @@ export default function PartInventoryList({ initialParts, onEdit }: { initialPar
                                 <td>
                                     <div className="service-cell">
                                         <Layers size={20} />
-                                        <span>{part.name}</span>
+                                        <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{part.name}</span>
                                     </div>
                                 </td>
                                 <td className="text-center">
@@ -75,13 +75,13 @@ export default function PartInventoryList({ initialParts, onEdit }: { initialPar
                                     </span>
                                 </td>
                                 <td className="text-right">
-                                    <div className="price text-sm font-bold text-slate-600">
+                                    <div className="price text-sm font-bold" style={{ color: 'var(--text-muted)' }}>
                                         <IndianRupee size={15} />
                                         {part.unit_price.toLocaleString()}
                                     </div>
                                 </td>
                                 <td className="text-right">
-                                    <div className="price font-black text-slate-700 text-base">
+                                    <div className="price font-black text-base" style={{ color: 'var(--text-main)' }}>
                                         <IndianRupee size={16} />
                                         {(part.total_value || (part.unit_price * part.stock_quantity)).toLocaleString()}
                                     </div>
@@ -112,11 +112,14 @@ export default function PartInventoryList({ initialParts, onEdit }: { initialPar
 
             {filtered.length === 0 && (
                 <div className="py-20 text-center">
-                    <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-100">
-                        <Layers size={32} />
+                    <div
+                        className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border"
+                        style={{ background: 'rgba(var(--text-main-rgb, 0,0,0), 0.05)', borderColor: 'var(--border)' }}
+                    >
+                        <Layers size={32} style={{ color: 'var(--text-muted)' }} />
                     </div>
-                    <h3 className="text-slate-900 text-lg font-semibold mb-2">No parts found</h3>
-                    <p className="text-slate-500 text-base max-w-xs mx-auto">Try refining your search keywords or add a new part to the inventory.</p>
+                    <h3 style={{ color: 'var(--text-main)', fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>No parts found</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '320px', margin: '0 auto' }}>Try refining your search keywords or add a new part to the inventory.</p>
                 </div>
             )}
         </div>

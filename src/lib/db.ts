@@ -46,13 +46,24 @@ const initPostgres = () => {
     if (!pool) {
         console.log('--- Initializing Postgres Connection Pool ---');
         console.log('URL defined:', !!process.env.DATABASE_URL);
+
+        // Add connection timeout and other config for better performance/debugging
         pool = new Pool({
             connectionString: process.env.DATABASE_URL,
             ssl: {
                 rejectUnauthorized: false
-            }
+            },
+            max: 10, // Max number of clients in the pool
+            idleTimeoutMillis: 30000,
+            connectionTimeoutMillis: 2000,
         });
+
         pool.on('error', (err) => console.error('Unexpected pool error:', err));
+
+        // Log when a new client connects
+        pool.on('connect', () => {
+            // Optional: console.log('New client connected to pool'); 
+        });
     }
 
     // Save to global in development
@@ -93,15 +104,19 @@ export const query = async (text: string, params?: any[]) => {
             const p = initPostgres();
             const res = await p.query(text, params);
             const duration = Date.now() - start;
-            console.log(`[DB] ${provider} query executed in ${duration}ms: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}`);
+
+            // Log slow queries (> 200ms)
+            if (duration > 200) {
+                console.log(`[DB-SLOW] ${provider} query executed in ${duration}ms: ${text.substring(0, 100)}...`);
+            } else if (process.env.NODE_ENV === 'development') {
+                // In dev, log all to see activity
+                // console.log(`[DB] ${provider} query executed in ${duration}ms`);
+            }
+
             return res;
         } else {
             const db = initSqlite();
-            // ... (rest of sqlite logic remains same)
-            // I'll keep the existing logic and just add the duration log at the end of the block
-            // Actually, I should probably do it more cleanly.
 
-            // Re-pasting the sqlite logic with logging
             const placeholders = text.match(/\$\d+/g) || [];
             const sqliteParams = placeholders.map(ph => {
                 const index = parseInt(ph.substring(1)) - 1;
@@ -133,14 +148,21 @@ export const query = async (text: string, params?: any[]) => {
             }
 
             const duration = Date.now() - start;
-            console.log(`[DB] ${provider} query executed in ${duration}ms: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}`);
+            if (duration > 200) {
+                console.log(`[DB-SLOW] ${provider} query executed in ${duration}ms: ${text.substring(0, 100)}...`);
+            }
 
             return { rows, rowCount };
         }
     } catch (error: any) {
-        console.error(`Database Error (${provider}):`, error.message);
+        const isDnsError = error.message?.includes('ENOTFOUND');
+        console.error(`❌ Database Error (${provider}):`, isDnsError ? 'DNS RESOLUTION FAILED (Host not found)' : error.message);
+        if (isDnsError) {
+            console.error('👉 Suggestion: Check your internet connection or your DATABASE_URL hostname.');
+        }
         console.error(`Query: ${text}`);
         console.error(`Params:`, params);
+        console.error(`Duration until failure: ${Date.now() - start}ms`);
         throw error;
     }
 };
@@ -149,9 +171,8 @@ export default {
     query
 };
 
-console.log('--- DATABASE DIAGNOSTIC ---');
-console.log('DATABASE_URL:', maskedUrl);
-console.log('ENVIRONMENT:', process.env.NODE_ENV);
-console.log('VERCEL:', !!process.env.VERCEL);
-console.log('PROVIDER SELECTED:', getDbProvider());
-console.log('---------------------------');
+// Initial Diagnostic on file load (only in dev to avoid log spam in prod)
+if (process.env.NODE_ENV !== 'production') {
+    // console.log('--- DATABASE MODULE LOADED ---');
+    // console.log('Provider will be:', getDbProvider());
+}

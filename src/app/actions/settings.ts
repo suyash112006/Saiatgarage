@@ -26,7 +26,7 @@ export async function updateGeneralSettings(formData: FormData) {
     try {
         const queries = [
             `INSERT INTO settings (key, value) VALUES ('garage_name', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
-            `INSERT INTO settings (key, value) VALUES ('tax_rate', $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`
+            `INSERT INTO settings (key, value) VALUES ('tax_rate', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`
         ];
 
         // Postgres doesn't support INSERT OR REPLACE. Use ON CONFLICT.
@@ -34,8 +34,8 @@ export async function updateGeneralSettings(formData: FormData) {
         await db.query(queries[0], [garageName]);
         await db.query(queries[1], [taxRate]);
 
-        // Auto-update totals for all active jobs to reflect new Tax Rate
-        const activeJobsRes = await db.query("SELECT id FROM job_cards WHERE status IN ('OPEN', 'IN_PROGRESS')");
+        // Auto-update totals for all active/recent jobs to reflect new Tax Rate
+        const activeJobsRes = await db.query("SELECT id FROM job_cards WHERE status IN ('OPEN', 'IN_PROGRESS', 'COMPLETED', 'BILLED')");
         const activeJobs = activeJobsRes.rows;
 
         for (const job of activeJobs) {

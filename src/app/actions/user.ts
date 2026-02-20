@@ -28,6 +28,7 @@ export async function deleteUser(userId: number) {
 export async function updateUserTheme(userId: number, theme: string) {
     try {
         await db.query('UPDATE users SET theme = $1 WHERE id = $2', [theme, userId]);
+        revalidatePath('/dashboard/settings');
         return { success: true };
     } catch (err) {
         console.error('Error updating user theme:', err);
@@ -40,15 +41,19 @@ export async function createUser(formData: FormData) {
     const email = formData.get('email') as string;
     const role = formData.get('role') as string;
     const password = formData.get('password') as string;
+    const username = email.split('@')[0];
 
     try {
-        await db.query('INSERT INTO users (name, email, role, password, is_verified) VALUES ($1, $2, $3, $4, $5)', [name, email, role, password, 1]);
+        await db.query('INSERT INTO users (name, email, username, role, password, is_active) VALUES ($1, $2, $3, $4, $5, $6)', [name, email, username, role, password, 1]);
 
         revalidatePath('/dashboard/settings');
         return { success: true };
-    } catch (err) {
+    } catch (err: any) {
         console.error('Error creating user:', err);
-        return { error: 'Failed to create user' };
+        if (err.code === '23505') { // Postgres UNIQUE violation
+            return { error: 'Email already exists' };
+        }
+        return { error: `Failed to create user: ${err.message}` };
     }
 }
 export async function updateUserProfile(userId: number, name: string, email: string) {
@@ -62,5 +67,24 @@ export async function updateUserProfile(userId: number, name: string, email: str
             return { error: 'Email already exists' };
         }
         return { error: 'Failed to update profile' };
+    }
+}
+
+export async function changePassword(userId: number, currentPassword: string, newPassword: string) {
+    try {
+        const userRes = await db.query('SELECT password FROM users WHERE id = $1', [userId]);
+        const user = userRes.rows[0];
+
+        if (!user) return { error: 'User not found' };
+
+        if (user.password !== currentPassword) {
+            return { error: 'Incorrect current password' };
+        }
+
+        await db.query('UPDATE users SET password = $1 WHERE id = $2', [newPassword, userId]);
+        return { success: true };
+    } catch (err) {
+        console.error('Error changing password:', err);
+        return { error: 'Failed to change password' };
     }
 }

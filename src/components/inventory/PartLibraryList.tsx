@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Search, Plus, Trash2, Pencil, Layers, Tag, Wrench, Hash } from 'lucide-react';
-import { deleteMasterPart } from '@/app/actions/inventory';
+import { deletePartLibraryItem } from '@/app/actions/inventory';
 
 interface Part {
     id: number;
@@ -12,8 +12,8 @@ interface Part {
     compatibility: string | null;
 }
 
-export default function PartLibraryList({ initialParts, onEdit }: { initialParts: any[], onEdit: (item: any) => void }) {
-    const [parts, setParts] = useState<Part[]>(initialParts);
+export default function PartLibraryList({ libraryParts, onEdit }: { libraryParts: any[], onEdit: (item: any) => void }) {
+    const [parts, setParts] = useState<Part[]>(libraryParts);
     const [search, setSearch] = useState('');
 
     const filtered = parts.filter(p =>
@@ -23,9 +23,9 @@ export default function PartLibraryList({ initialParts, onEdit }: { initialParts
     );
 
     async function handleDelete(id: number) {
-        if (!confirm('Are you sure you want to remove this part from the library?')) return;
+        if (!confirm('Are you sure you want to remove this master part definition? (This will NOT affect existing inventory stock)')) return;
 
-        const res = await deleteMasterPart(id);
+        const res = await deletePartLibraryItem(id);
         if (res.success) {
             setParts(parts.filter(p => p.id !== id));
         } else if (res.error) {
@@ -53,11 +53,11 @@ export default function PartLibraryList({ initialParts, onEdit }: { initialParts
                 <table className="data-table">
                     <thead>
                         <tr>
-                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Item Name</th>
-                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Part #</th>
-                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Brand</th>
-                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Compatibility</th>
-                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Actions</th>
+                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-left" style={{ color: 'var(--text-muted)' }}>Item Name</th>
+                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-center" style={{ color: 'var(--text-muted)' }}>Part #</th>
+                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-center" style={{ color: 'var(--text-muted)' }}>Brand</th>
+                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-left" style={{ color: 'var(--text-muted)' }}>Compatibility</th>
+                            <th className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-center" style={{ color: 'var(--text-muted)' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -65,27 +65,33 @@ export default function PartLibraryList({ initialParts, onEdit }: { initialParts
                             <tr key={part.id}>
                                 <td>
                                     <div className="service-cell">
-                                        <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400">
-                                            <Layers size={16} />
+                                        <div
+                                            className="w-8 h-8 rounded-lg border flex items-center justify-center"
+                                            style={{ background: 'rgba(var(--text-main-rgb, 0,0,0), 0.05)', borderColor: 'var(--border)' }}
+                                        >
+                                            <Layers size={16} style={{ color: 'var(--text-muted)' }} />
                                         </div>
-                                        <span className="font-bold text-slate-900">{part.name}</span>
+                                        <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{part.name}</span>
                                     </div>
                                 </td>
                                 <td className="text-center">
-                                    <div className="flex items-center justify-center gap-2 text-slate-500 font-mono text-xs font-bold bg-slate-50 px-2 py-1 rounded border border-slate-100 w-fit mx-auto">
-                                        <Hash size={12} className="text-slate-400" />
+                                    <div
+                                        className="flex items-center justify-center gap-2 font-mono text-xs font-bold px-2 py-1 rounded border w-fit mx-auto"
+                                        style={{ background: 'rgba(var(--text-main-rgb, 0,0,0), 0.03)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                                    >
+                                        <Hash size={12} style={{ opacity: 0.5 }} />
                                         {part.part_no || '—'}
                                     </div>
                                 </td>
                                 <td className="text-center">
-                                    <div className="flex items-center justify-center gap-2 text-slate-600 font-bold text-xs uppercase tracking-wider">
-                                        <Tag size={12} className="text-primary/60" />
+                                    <div className="flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-wider" style={{ color: 'var(--text-main)' }}>
+                                        <Tag size={12} style={{ color: 'var(--primary)', opacity: 0.6 }} />
                                         {part.brand || 'Generic'}
                                     </div>
                                 </td>
                                 <td>
-                                    <div className="flex items-center gap-2 text-slate-500 text-xs font-medium italic">
-                                        <Wrench size={12} className="text-slate-300" />
+                                    <div className="flex items-center gap-2 text-xs font-medium italic" style={{ color: 'var(--text-muted)' }}>
+                                        <Wrench size={12} style={{ opacity: 0.4 }} />
                                         {part.compatibility || 'All Models'}
                                     </div>
                                 </td>
@@ -115,11 +121,14 @@ export default function PartLibraryList({ initialParts, onEdit }: { initialParts
 
             {filtered.length === 0 && (
                 <div className="py-20 text-center">
-                    <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-100">
-                        <Layers size={32} />
+                    <div
+                        className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border"
+                        style={{ background: 'rgba(var(--text-main-rgb, 0,0,0), 0.05)', borderColor: 'var(--border)' }}
+                    >
+                        <Layers size={32} style={{ color: 'var(--text-muted)' }} />
                     </div>
-                    <h3 className="text-slate-900 text-lg font-semibold mb-2">Library item not found</h3>
-                    <p className="text-slate-500 text-base max-w-xs mx-auto">Build your part catalog by adding new items to the library.</p>
+                    <h3 style={{ color: 'var(--text-main)', fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>Library item not found</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '320px', margin: '0 auto' }}>Build your part catalog by adding new items to the library.</p>
                 </div>
             )}
         </div>

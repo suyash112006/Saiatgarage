@@ -96,16 +96,15 @@ export default function CreateJobForm({ vehicle }: { vehicle: any }) {
                         {/* Complaint */}
                         <div className="form-field">
                             <label className="text-xs font-semibold text-muted mb-1 block">
-                                Complaint / Job Description <span className="text-red-500">*</span>
+                                Complaint / Job Description
                             </label>
                             <div className="input-wrapper relative">
                                 <FileText size={18} className="absolute top-3.5 left-3.5 text-slate-400 z-10" />
                                 <textarea
                                     name="complaint"
-                                    required
                                     rows={3}
                                     className="w-full !pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium text-slate-900 text-sm placeholder:text-slate-400"
-                                    placeholder="Describe the issues reported by the customer..."
+                                    placeholder="(Optional) Describe the issues reported by the customer..."
                                 />
                             </div>
                         </div>

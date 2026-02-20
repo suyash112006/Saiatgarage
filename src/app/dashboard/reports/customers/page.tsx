@@ -1,16 +1,14 @@
 import { getRepeatCustomers } from '@/app/actions/analytics';
 import { getSession } from '@/app/actions/auth';
 import { redirect } from 'next/navigation';
-import { Users, TrendingUp, Calendar, DollarSign } from 'lucide-react';
+import { Users, TrendingUp, Calendar, IndianRupee, ArrowLeft, Star } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CustomerRetentionPage() {
     const session = await getSession();
-    if (session?.role !== 'admin') {
-        redirect('/dashboard');
-    }
+    if (session?.role !== 'admin') redirect('/dashboard');
 
     const result = await getRepeatCustomers();
 
@@ -23,9 +21,13 @@ export default async function CustomerRetentionPage() {
     }
 
     const customers = result.data || [];
+    const totalSpent = customers.reduce((sum: number, c: any) => sum + Number(c.total_spent ?? 0), 0);
+    const totalVisits = customers.reduce((sum: number, c: any) => sum + Number(c.total_visits ?? 0), 0);
 
     return (
         <div className="dashboard-container">
+
+            {/* ── Header ── */}
             <div className="page-header mb-8">
                 <div>
                     <nav className="breadcrumbs text-muted mb-2">
@@ -37,80 +39,106 @@ export default async function CustomerRetentionPage() {
                     <p className="page-subtitle">Repeat customers and visit frequency</p>
                 </div>
                 <Link href="/dashboard/reports" className="btn btn-outline flex items-center gap-2">
-                    Back to Reports
+                    <ArrowLeft size={16} /> Back to Reports
                 </Link>
             </div>
 
+            {/* ── KPI Cards ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '20px', marginBottom: '28px' }}>
+                <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                    <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(37, 99, 235, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+                        <Users size={24} color="#2563eb" />
+                    </div>
+                    <p style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px' }}>Repeat Customers</p>
+                    <p style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', lineHeight: 1 }}>{customers.length}</p>
+                </div>
+
+                <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                    <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(22, 163, 74, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+                        <IndianRupee size={24} color="#16a34a" />
+                    </div>
+                    <p style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px' }}>Total Lifetime Value</p>
+                    <p style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', lineHeight: 1 }}>₹{totalSpent.toLocaleString()}</p>
+                </div>
+
+                <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                    <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(147, 51, 234, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+                        <TrendingUp size={24} color="#9333ea" />
+                    </div>
+                    <p style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px' }}>Total Visits</p>
+                    <p style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', lineHeight: 1 }}>{totalVisits}</p>
+                </div>
+            </div>
+
+            {/* ── Table ── */}
             {customers.length === 0 ? (
-                <div className="card p-12 rounded-3xl text-center">
-                    <Users size={48} className="mx-auto text-slate-300 mb-4" />
-                    <p className="text-slate-500 font-bold">No repeat customers yet</p>
+                <div className="card" style={{ padding: '60px', textAlign: 'center', borderRadius: '20px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                    <div style={{ width: 64, height: 64, borderRadius: '20px', background: 'rgba(51, 65, 85, 0.05)', border: '2px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                        <Users size={28} color="var(--text-muted)" />
+                    </div>
+                    <p style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: '15px' }}>No repeat customers yet</p>
                 </div>
             ) : (
-                <div className="card p-8 rounded-3xl">
-                    <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-2xl">
-                        <p className="text-sm text-green-900">
-                            <strong className="font-black">{customers.length}</strong> repeat customers found. These are your most valuable clients!
-                        </p>
+                <div className="card" style={{ borderRadius: '20px', overflow: 'hidden', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                    <div style={{ padding: '24px 28px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: '10px', background: 'rgba(37, 99, 235, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Star size={18} color="#2563eb" />
+                        </div>
+                        <div>
+                            <h2 style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text-main)' }}>Top Loyal Customers</h2>
+                            <p style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500 }}>{customers.length} customers with 2+ visits</p>
+                        </div>
                     </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b-2 border-slate-200">
-                                    <th className="text-left py-4 px-6 text-xs font-black uppercase tracking-widest text-slate-400">
-                                        Customer
-                                    </th>
-                                    <th className="text-center py-4 px-6 text-xs font-black uppercase tracking-widest text-slate-400">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <TrendingUp size={14} />
-                                            Total Visits
-                                        </div>
-                                    </th>
-                                    <th className="text-center py-4 px-6 text-xs font-black uppercase tracking-widest text-slate-400">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <Calendar size={14} />
-                                            Last Visit
-                                        </div>
-                                    </th>
-                                    <th className="text-right py-4 px-6 text-xs font-black uppercase tracking-widest text-slate-400">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <DollarSign size={14} />
-                                            Total Spent
-                                        </div>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {customers.map((customer: any) => (
-                                    <tr key={customer.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                                        <td className="py-5 px-6">
-                                            <div>
-                                                <div className="font-black text-slate-900">{customer.name}</div>
-                                                <div className="text-xs text-slate-400">{customer.mobile || '—'}</div>
+                    <table className="data-table w-full">
+                        <thead>
+                            <tr>
+                                <th className="text-left" style={{ fontSize: '18px' }}>#</th>
+                                <th className="text-left" style={{ fontSize: '18px' }}>Customer</th>
+                                <th className="text-center" style={{ fontSize: '18px' }}>Visits</th>
+                                <th className="text-center" style={{ fontSize: '18px' }}>Last Visit</th>
+                                <th className="text-right" style={{ fontSize: '18px' }}>Total Spent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {customers.map((customer: any, index: number) => (
+                                <tr key={customer.id}>
+                                    <td style={{ padding: '18px 24px', width: 60 }}>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: '8px', background: index === 0 ? 'rgba(217, 119, 6, 0.1)' : 'rgba(51, 65, 85, 0.05)', color: index === 0 ? '#d97706' : 'var(--text-muted)', fontWeight: 900, fontSize: '13px', border: '1px solid var(--border)' }}>
+                                            {index + 1}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '18px 24px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(37, 99, 235, 0.05)', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <span style={{ fontSize: '15px', fontWeight: 900, color: '#2563eb' }}>
+                                                    {customer.name.charAt(0).toUpperCase()}
+                                                </span>
                                             </div>
-                                        </td>
-                                        <td className="py-5 px-6 text-center">
-                                            <span className="text-xl font-black text-slate-900">
-                                                {customer.total_visits}
-                                            </span>
-                                            <span className="text-xs text-slate-400 ml-1">visits</span>
-                                        </td>
-                                        <td className="py-5 px-6 text-center">
-                                            <span className="text-sm font-bold text-slate-600">
-                                                {customer.last_visit ? new Date(customer.last_visit).toLocaleDateString() : 'N/A'}
-                                            </span>
-                                        </td>
-                                        <td className="py-5 px-6 text-right">
-                                            <span className="text-lg font-black text-green-600">
-                                                ₹{customer.total_spent?.toLocaleString() || 0}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                            <div>
+                                                <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '15px' }}>{customer.name}</div>
+                                                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{customer.mobile || '—'}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: '18px 24px', textAlign: 'center' }}>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '6px', background: 'rgba(124, 58, 237, 0.1)', color: '#7c3aed', fontWeight: 800, fontSize: '14px' }}>
+                                            {Number(customer.total_visits)}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '18px 24px', textAlign: 'center' }}>
+                                        <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                            {customer.last_visit ? new Date(customer.last_visit).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '18px 24px', textAlign: 'right' }}>
+                                        <span style={{ fontSize: '18px', fontWeight: 900, color: '#16a34a' }}>
+                                            ₹{Number(customer.total_spent ?? 0).toLocaleString()}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             )}
         </div>

@@ -25,11 +25,11 @@ export default function CollapsibleSection({
     const showContent = true;
 
     return (
-        <div className={clsx("card bg-white overflow-hidden transition-all duration-300", className, "rounded-[24px] mb-8 p-10")}>
+        <div className={clsx("card transition-all duration-300", className, "rounded-[24px] mb-8 p-10")}>
             <div
                 className="flex items-center justify-between w-full text-left transition-colors mb-6 pointer-events-none cursor-default"
             >
-                <h3 className="section-title text-slate-900 flex items-center gap-2 font-bold uppercase tracking-wider border-0 pb-0 text-2xl">
+                <h3 className="section-title flex items-center gap-2 font-bold uppercase tracking-wider border-0 pb-0 text-2xl" style={{ color: 'var(--text-main)' }}>
                     {icon}
                     {title}
                 </h3>

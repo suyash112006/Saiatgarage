@@ -145,3 +145,185 @@ export async function deleteMasterPart(id: number) {
         return { error: 'Failed' };
     }
 }
+
+/**
+ * CAR LIBRARY (Brand -> Models)
+ */
+
+export async function getCarLibrary() {
+    try {
+        const res = await db.query(`
+            SELECT m.id, b.name as brand, m.name as model 
+            FROM vehicle_models m 
+            JOIN vehicle_brands b ON m.brand_id = b.id 
+            ORDER BY b.name, m.name
+        `);
+        return res.rows;
+    } catch (err) {
+        console.error('Error fetching car library:', err);
+        return [];
+    }
+}
+
+export async function getVehicleBrands() {
+    try {
+        const res = await db.query('SELECT * FROM vehicle_brands ORDER BY name');
+        return res.rows;
+    } catch (err) {
+        console.error('Error fetching vehicle brands:', err);
+        return [];
+    }
+}
+
+export async function addCarLibraryItem(formData: FormData) {
+    const session = await getSession();
+    if (session?.role !== 'admin') return { error: 'Unauthorized' };
+
+    const brandName = (formData.get('brand') as string)?.trim();
+    const modelName = (formData.get('model') as string)?.trim();
+
+    if (!brandName || !modelName) return { error: 'Brand and Model are required' };
+
+    try {
+        // Upsert brand
+        const brandRes = await db.query(
+            "INSERT INTO vehicle_brands (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id",
+            [brandName]
+        );
+        const brandId = brandRes.rows[0].id;
+
+        // Split models by comma, trim, and filter out empty strings
+        const models = modelName.split(',').map(m => m.trim()).filter(m => m.length > 0);
+
+        // Insert distinct models
+        for (const name of models) {
+            await db.query(
+                'INSERT INTO vehicle_models (brand_id, name) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+                [brandId, name]
+            );
+        }
+
+        revalidatePath('/dashboard/inventory');
+        return { success: true };
+    } catch (err: any) {
+        return { error: 'Failed to add item to library' };
+    }
+}
+
+export async function updateCarLibraryItem(formData: FormData) {
+    const session = await getSession();
+    if (session?.role !== 'admin') return { error: 'Unauthorized' };
+
+    const id = Number(formData.get('id')); // model id
+    const brandName = (formData.get('brand') as string)?.trim();
+    const modelName = (formData.get('model') as string)?.trim();
+
+    if (!brandName || !modelName) return { error: 'Brand and Model are required' };
+
+    try {
+        // Upsert brand
+        const brandRes = await db.query(
+            "INSERT INTO vehicle_brands (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id",
+            [brandName]
+        );
+        const brandId = brandRes.rows[0].id;
+
+        await db.query(
+            'UPDATE vehicle_models SET brand_id = $1, name = $2 WHERE id = $3',
+            [brandId, modelName, id]
+        );
+
+        revalidatePath('/dashboard/inventory');
+        return { success: true };
+    } catch (err) {
+        return { error: 'Failed to update library item' };
+    }
+}
+
+export async function deleteCarLibraryItem(id: number) {
+    const session = await getSession();
+    if (session?.role !== 'admin') return { error: 'Unauthorized' };
+
+    try {
+        await db.query('DELETE FROM vehicle_models WHERE id = $1', [id]);
+        revalidatePath('/dashboard/inventory');
+        return { success: true };
+    } catch (err) {
+        return { error: 'Failed to delete' };
+    }
+}
+
+/**
+ * PART LIBRARY (Master definitions)
+ */
+
+export async function getPartLibrary() {
+    try {
+        const res = await db.query('SELECT * FROM part_library ORDER BY name');
+        return res.rows;
+    } catch (err) {
+        console.error('Error fetching part library:', err);
+        return [];
+    }
+}
+
+export async function addPartLibraryItem(formData: FormData) {
+    const session = await getSession();
+    if (session?.role !== 'admin') return { error: 'Unauthorized' };
+
+    const name = formData.get('name') as string;
+    const partNo = formData.get('partNo') as string;
+    const brand = formData.get('brand') as string;
+    const compatibility = formData.get('compatibility') as string;
+    const unitPrice = Number(formData.get('unitPrice')) || 0;
+
+    if (!name) return { error: 'Part name is required' };
+
+    try {
+        await db.query(
+            'INSERT INTO part_library (name, part_no, brand, compatibility, unit_price) VALUES ($1, $2, $3, $4, $5)',
+            [name, partNo || null, brand || null, compatibility || null, unitPrice]
+        );
+        revalidatePath('/dashboard/inventory');
+        return { success: true };
+    } catch (err: any) {
+        if (err.code === '23505') return { error: 'Part Number already exists in Library' };
+        return { error: 'Failed to add to library' };
+    }
+}
+
+export async function updatePartLibraryItem(formData: FormData) {
+    const session = await getSession();
+    if (session?.role !== 'admin') return { error: 'Unauthorized' };
+
+    const id = Number(formData.get('id'));
+    const name = formData.get('name') as string;
+    const partNo = formData.get('partNo') as string;
+    const brand = formData.get('brand') as string;
+    const compatibility = formData.get('compatibility') as string;
+    const unitPrice = Number(formData.get('unitPrice')) || 0;
+
+    try {
+        await db.query(
+            'UPDATE part_library SET name = $1, part_no = $2, brand = $3, compatibility = $4, unit_price = $5 WHERE id = $6',
+            [name, partNo, brand, compatibility, unitPrice, id]
+        );
+        revalidatePath('/dashboard/inventory');
+        return { success: true };
+    } catch (err) {
+        return { error: 'Failed to update library item' };
+    }
+}
+
+export async function deletePartLibraryItem(id: number) {
+    const session = await getSession();
+    if (session?.role !== 'admin') return { error: 'Unauthorized' };
+
+    try {
+        await db.query('DELETE FROM part_library WHERE id = $1', [id]);
+        revalidatePath('/dashboard/inventory');
+        return { success: true };
+    } catch (err) {
+        return { error: 'Failed to delete' };
+    }
+}

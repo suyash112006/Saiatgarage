@@ -1,24 +1,24 @@
-import { getCustomers } from '@/app/actions/customer';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/app/actions/auth';
-import CustomerTable from '@/components/CustomerTable';
+import { Suspense } from 'react';
+import CustomerTableWrapper from '@/components/CustomerTableWrapper';
 
 export default async function CustomersPage() {
     const session = await getSession();
     if (!session) redirect('/login');
 
-    const customers = await getCustomers();
+    const isAdmin = session?.role === 'admin';
 
     return (
         <div className="dashboard-container">
             <div className="page-header">
                 <div>
-                    <nav className="breadcrumbs text-muted mb-1">
+                    <nav className="breadcrumbs">
                         <span className="breadcrumb-item">Dashboard</span>
-                        <span className="breadcrumb-separator mx-1">/</span>
-                        <span className="breadcrumb-item active text-primary font-medium">Customers</span>
+                        <span className="breadcrumb-separator">/</span>
+                        <span className="breadcrumb-item active">Customers</span>
                     </nav>
                     <h1 className="page-title">Customers</h1>
                     <p className="page-subtitle text-muted">Manage your client base and their vehicles</p>
@@ -30,7 +30,9 @@ export default async function CustomersPage() {
                 </Link>
             </div>
 
-            <CustomerTable initialCustomers={customers} />
+            <Suspense fallback={<div className="p-10 text-center text-muted">Loading customers...</div>}>
+                <CustomerTableWrapper isAdmin={isAdmin} />
+            </Suspense>
         </div>
     );
 }

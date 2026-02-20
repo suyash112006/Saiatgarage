@@ -2,8 +2,16 @@ import { getJobDetails } from '@/app/actions/job';
 import { getSession } from '@/app/actions/auth';
 import { notFound, redirect } from 'next/navigation';
 import PrintInvoiceButton from '@/components/PrintInvoiceButton';
+import ShareInvoiceButton from '@/components/ShareInvoiceButton';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+    return {
+        title: `Estimate Job #${id} | SAI AUTO TECHNIC`,
+    };
+}
 
 export default async function EstimatePage(props: { params: Promise<{ id: string }> }) {
     const params = await props.params;
@@ -20,153 +28,243 @@ export default async function EstimatePage(props: { params: Promise<{ id: string
 
     const { job, services, parts } = data;
 
+    // Combine items but keep track of types for table splitting
+    const partsItems = parts.map((p: any) => ({ ...p, type: 'part' }));
+    const serviceItems = services.map((s: any) => ({ ...s, type: 'service' }));
+    const allItems = [...partsItems, ...serviceItems];
+
+    // Pagination logic
+    const itemsPerPageFirst = 12;
+    const itemsPerPageOthers = 20;
+    const pages: any[][] = [];
+
+    let currentItemIdx = 0;
+    while (currentItemIdx < allItems.length || pages.length === 0) {
+        const isFirstPage = pages.length === 0;
+        const limit = isFirstPage ? itemsPerPageFirst : itemsPerPageOthers;
+        const chunk = allItems.slice(currentItemIdx, currentItemIdx + limit);
+        pages.push(chunk);
+        currentItemIdx += limit;
+        if (currentItemIdx >= allItems.length) break;
+    }
+
     // Calculate totals
     const servicesTotal = services.reduce((sum: number, s: any) => sum + (s.price * s.quantity), 0);
     const partsTotal = parts.reduce((sum: number, p: any) => sum + (p.price * p.quantity), 0);
     const grandTotal = servicesTotal + partsTotal;
 
+    // Prepare share data
+    const shareInvoice = {
+        id: job.id,
+        invoice_no: `EST-${job.id}`,
+        customer_name: job.customer_name,
+        customer_mobile: job.mobile,
+        grandTotal: grandTotal
+    };
+
     return (
         <>
-            <PrintInvoiceButton />
+            <div className="no-print fixed top-6 right-6 z-50 flex items-center gap-3">
+                <ShareInvoiceButton invoice={shareInvoice} />
+                <PrintInvoiceButton />
+            </div>
 
             <div className="invoice-container">
-                <div className="invoice-page">
-                    {/* Watermark for Estimate */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] -rotate-12 pointer-events-none select-none">
-                        <h1 className="text-[12rem] font-black tracking-tighter">ESTIMATE</h1>
-                    </div>
+                {pages.map((pageItems, pageIdx) => {
+                    const isFirstPage = pageIdx === 0;
+                    const isLastPage = pageIdx === pages.length - 1;
 
-                    {/* Header */}
-                    <div className="text-center mb-8 pb-6 border-b-2 border-slate-400">
-                        <h1 className="text-3xl font-black text-slate-900 mb-2">SAI AUTO TECHNIC</h1>
-                        <p className="text-sm text-slate-600 mb-4">Servicing / Maintenance</p>
-                        <div className="text-xs text-slate-700 leading-relaxed space-y-1">
-                            <p>Plot No. 4, Sr. No. 273, Shanka Savitr Nagar,</p>
-                            <p>Near Comfort Zone, Ambad, Nashik – 422010</p>
-                            <p className="mt-2 font-semibold">Mobile: 9371026774</p>
+                    // Group items by type for separate tables on this page
+                    const pageParts = pageItems.filter(item => item.type === 'part');
+                    const pageServices = pageItems.filter(item => item.type === 'service');
+
+                    return (
+                        <div key={pageIdx} className={`invoice-page ${!isLastPage ? 'page-break' : ''}`}>
+                            {/* Watermark for Estimate */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 watermark-text -rotate-12 pointer-events-none select-none no-print">
+                                <h1 className="text-[12rem] font-black tracking-tighter">ESTIMATE</h1>
+                            </div>
+
+                            {/* Header - Show full branding only on first page */}
+                            <div className="flex justify-between items-start mb-8 pb-6 border-b border-slate-100">
+                                <div className="text-left">
+                                    <h1 className="text-4xl font-black text-slate-900 leading-none">SAI AUTO TECHNIC</h1>
+                                    {!isFirstPage && <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest italic">Continued - Estimate: Job #{jobId}</p>}
+                                    {isFirstPage && <p className="text-xs font-bold text-slate-500 mt-2 uppercase tracking-[0.3em]">Servicing & Maintenance</p>}
+                                </div>
+                                {isFirstPage && (
+                                    <div className="text-right text-[11px] text-slate-600 leading-relaxed font-medium">
+                                        <p>Plot No. 4, Sr. No. 273, Shanka Savitr Nagar,</p>
+                                        <p>Near Comfort Zone, Ambad, Nashik – 422010</p>
+                                        <p className="mt-1 font-bold text-slate-900">Mobile: 9371026774</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {isFirstPage && (
+                                <>
+                                    <div className="text-center mb-8 flex flex-col items-center">
+                                        <h2 className="text-2xl font-black text-slate-900 tracking-[0.2em] uppercase py-1.5 inline-block px-12">ESTIMATE</h2>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">(Proforma Invoice / Subject to changes)</p>
+                                    </div>
+
+                                    {/* Customer & Vehicle Info */}
+                                    <div className="mb-8 text-sm">
+                                        <table className="w-full border-collapse">
+                                            <tbody>
+                                                <tr>
+                                                    <td className="py-2 pr-3 text-slate-600 font-medium w-[115px]">Customer Name :</td>
+                                                    <td className="py-2 font-semibold text-slate-900">{job.customer_name}</td>
+                                                    <td className="py-2 pr-3 text-slate-600 font-medium w-[95px]">Vehicle No :</td>
+                                                    <td className="py-2 font-semibold text-slate-900">{job.vehicle_number}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td className="py-2 pr-3 text-slate-600 font-medium">Contact No :</td>
+                                                    <td className="py-2 text-slate-700">{job.mobile || '—'}</td>
+                                                    <td className="py-2 pr-3 text-slate-600 font-medium w-[95px]">Model :</td>
+                                                    <td className="py-2 text-slate-700">{job.model}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td className="py-2 pr-3 text-slate-600 font-medium">Date :</td>
+                                                    <td className="py-2 text-slate-700">{new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                                                    <td className="py-2 pr-3 text-slate-600 font-medium w-[95px]">Kilometers :</td>
+                                                    <td className="py-2 text-slate-700">{job.km_reading ? job.km_reading.toLocaleString() : '—'}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Line Items Container */}
+                            <div className="mb-8 min-h-[400px]">
+                                {/* Parts Table */}
+                                {pageParts.length > 0 && (
+                                    <div className="mb-6">
+                                        <h3 className="font-black text-slate-400 mb-2 uppercase tracking-widest border-l-2 border-primary pl-2" style={{ fontSize: '16px' }}>Parts / Materials</h3>
+                                        <table className="w-full border-collapse table-fixed invoice-table">
+                                            <thead>
+                                                <tr>
+                                                    <th className="text-center pb-3 px-2" style={{ width: '40px' }}>Sr</th>
+                                                    <th className="text-left pb-3 px-2">Description</th>
+                                                    <th className="text-left pb-3 px-2" style={{ width: '60px' }}>Qty</th>
+                                                    <th className="text-left pb-3 px-2" style={{ width: '90px' }}>Rate</th>
+                                                    <th className="text-left pb-3 px-2" style={{ width: '100px' }}>Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {pageParts.map((item: any, idx: number) => {
+                                                    const srNo = partsItems.indexOf(item) + 1;
+                                                    return (
+                                                        <tr key={`part-${idx}`}>
+                                                            <td className="text-center text-slate-600 py-3 px-2">{srNo}</td>
+                                                            <td className="py-3 px-2">
+                                                                <span className="text-slate-900">{item.part_name || 'Part'}</span>
+                                                                {item.part_no && <span className="text-xs text-slate-500 ml-2">#{item.part_no}</span>}
+                                                            </td>
+                                                            <td className="text-left text-slate-700 py-3 px-2">{item.quantity}</td>
+                                                            <td className="text-left text-slate-700 py-3 px-2">{item.price.toLocaleString()}</td>
+                                                            <td className="text-left font-semibold text-slate-900 py-3 px-2">{(item.price * item.quantity).toLocaleString()}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+
+                                {/* Services / Labour Table */}
+                                {pageServices.length > 0 && (
+                                    <div className="mb-6">
+                                        <h3 className="font-black text-slate-400 mb-2 uppercase tracking-widest border-l-2 border-primary pl-2" style={{ fontSize: '16px' }}>Labour Charges</h3>
+                                        <table className="w-full border-collapse table-fixed invoice-table">
+                                            <thead>
+                                                <tr>
+                                                    <th className="text-center pb-3 px-2" style={{ width: '40px' }}>Sr</th>
+                                                    <th className="text-left pb-3 px-2">Description</th>
+                                                    <th className="text-left pb-3 px-2" style={{ width: '60px' }}>Qty</th>
+                                                    <th className="text-left pb-3 px-2" style={{ width: '90px' }}>Rate</th>
+                                                    <th className="text-left pb-3 px-2" style={{ width: '100px' }}>Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {pageServices.map((item: any, idx: number) => {
+                                                    const srNo = serviceItems.indexOf(item) + 1;
+                                                    return (
+                                                        <tr key={`service-${idx}`}>
+                                                            <td className="text-center text-slate-600 py-3 px-2">{srNo}</td>
+                                                            <td className="py-3 px-2">
+                                                                <span className="text-slate-900">{item.service_name || 'Service'}</span>
+                                                            </td>
+                                                            <td className="text-left text-slate-700 py-3 px-2">{item.quantity}</td>
+                                                            <td className="text-left text-slate-700 py-3 px-2">{item.price.toLocaleString()}</td>
+                                                            <td className="text-left font-semibold text-slate-900 py-3 px-2">{(item.price * item.quantity).toLocaleString()}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+
+                                {/* Filler rows for spatial consistency */}
+                                {pageItems.length < 3 && Array.from({ length: 3 - pageItems.length }).map((_, i) => (
+                                    <div key={`filler-${i}`} className="py-8">&nbsp;</div>
+                                ))}
+                            </div>
+
+                            {isLastPage && (
+                                <>
+                                    {/* Totals Section */}
+                                    <div className="mt-8 pt-4">
+                                        <table className="w-full border-collapse">
+                                            <tbody>
+                                                <tr>
+                                                    <td className="text-left text-slate-600 pb-2 font-medium">Estimated Parts Total</td>
+                                                    <td className="text-right font-semibold text-slate-900 pb-2 px-2" style={{ width: '140px' }}>
+                                                        ₹ {Number(partsTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td className="text-left text-slate-600 pb-2 font-medium">Estimated Labour Total</td>
+                                                    <td className="text-right font-semibold text-slate-900 pb-2 px-2">
+                                                        ₹ {Number(servicesTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td className="text-left text-slate-600 pt-3 pb-2 font-bold text-lg border-t border-slate-500">Estimated Grand Total</td>
+                                                    <td className="text-right font-black text-2xl text-primary pt-3 pb-2 px-2 border-t border-slate-500">
+                                                        ₹ {Number(grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        <p className="text-[10px] text-slate-400 italic mt-6">* This is a computer-generated estimate and does not include taxes unless specified. Prices are subject to final invoice at the time of delivery.</p>
+                                    </div>
+
+                                    {/* Footer / Signature Section moved here */}
+                                    <div className="mt-20 pt-8 border-t border-slate-100 flex justify-between items-end">
+                                        <div className="text-left">
+                                            <p className="text-sm text-slate-600 font-medium">Thank you for Choosing us for your vehicle care</p>
+                                            <p className="text-base font-black text-slate-900 mt-1 uppercase tracking-tighter">SAI AUTO TECHNIC</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="mb-2">
+                                                <div className="mt-12"></div>
+                                                <p className="text-xs text-slate-500 mt-2 font-medium">Authorised Signatory</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            <div className="mt-auto pt-8 text-[10px] text-slate-400 flex justify-between items-center no-print">
+                                <span>SAI AUTO TECHNIC | ESTIMATE</span>
+                                <span>Page {pageIdx + 1} of {pages.length}</span>
+                            </div>
                         </div>
-                        <div className="mt-8 flex flex-col items-center">
-                            <span className="bg-[#0f172a] text-white px-6 py-1.5 text-lg font-black tracking-[0.2em] rounded-full inline-block leading-none uppercase">ESTIMATE</span>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">(Proforma Invoice / Subject to changes)</p>
-                        </div>
-                    </div>
-
-                    {/* Customer & Vehicle Info */}
-                    <div className="mb-8 text-sm">
-                        <table className="w-full border-collapse">
-                            <tbody>
-                                <tr>
-                                    <td className="py-2 pr-3 text-slate-600 font-medium w-[140px]">Customer Name :</td>
-                                    <td className="py-2 font-semibold text-slate-900">{job.customer_name}</td>
-                                    <td className="py-2 pr-3 text-slate-600 font-medium w-[120px]">Vehicle No :</td>
-                                    <td className="py-2 font-semibold text-slate-900">{job.vehicle_number}</td>
-                                </tr>
-                                <tr>
-                                    <td className="py-2 pr-3 text-slate-600 font-medium">Contact No :</td>
-                                    <td className="py-2 text-slate-700">{job.mobile || '—'}</td>
-                                    <td className="py-2 pr-3 text-slate-600 font-medium">Model :</td>
-                                    <td className="py-2 text-slate-700">{job.model}</td>
-                                </tr>
-                                <tr>
-                                    <td className="py-2 pr-3 text-slate-600 font-medium">Date :</td>
-                                    <td className="py-2 text-slate-700">{new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
-                                    <td className="py-2 pr-3 text-slate-600 font-medium">Kilometers :</td>
-                                    <td className="py-2 text-slate-700">{job.km_reading ? job.km_reading.toLocaleString() : '—'}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Parts Table */}
-                    {parts.length > 0 && (
-                        <div className="mb-8">
-                            <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wide">Estimate: Parts / Materials</h3>
-                            <table className="w-full border-collapse table-fixed invoice-table">
-                                <thead>
-                                    <tr className="border-b-2 border-slate-400">
-                                        <th className="text-center pb-3 px-2" style={{ width: '40px' }}>Sr</th>
-                                        <th className="text-left pb-3 px-2">Particulars</th>
-                                        <th className="text-left pb-3 px-2" style={{ width: '80px' }}>Qty</th>
-                                        <th className="text-left pb-3 px-2" style={{ width: '100px' }}>Rate</th>
-                                        <th className="text-left pb-3 px-2" style={{ width: '120px' }}>Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {parts.map((part: any, idx: number) => (
-                                        <tr key={idx} className="border-b border-slate-200">
-                                            <td className="text-center text-slate-600 py-3 px-2">{idx + 1}</td>
-                                            <td className="py-3 px-2">
-                                                <span className="text-slate-900">{part.part_name || 'Part'}</span>
-                                                {part.part_no && <span className="text-xs text-slate-500 ml-2">#{part.part_no}</span>}
-                                            </td>
-                                            <td className="text-left text-slate-700 py-3 px-2">{part.quantity}</td>
-                                            <td className="text-left text-slate-700 py-3 px-2">{part.price.toLocaleString()}</td>
-                                            <td className="text-left font-semibold text-slate-900 py-3 px-2">{(part.price * part.quantity).toLocaleString()}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-
-                    {/* Labour Table */}
-                    {services.length > 0 && (
-                        <div className="mb-8">
-                            <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wide">Estimate: Labour Charges</h3>
-                            <table className="w-full border-collapse table-fixed invoice-table">
-                                <thead>
-                                    <tr className="border-b-2 border-slate-400">
-                                        <th className="text-center pb-3 px-2" style={{ width: '40px' }}>Sr</th>
-                                        <th className="text-left pb-3 px-2">Labour Description</th>
-                                        <th className="text-left pb-3 px-2" style={{ width: '120px' }}>Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {services.map((service: any, idx: number) => (
-                                        <tr key={idx} className="border-b border-slate-200">
-                                            <td className="text-center text-slate-600 py-3 px-2">{idx + 1}</td>
-                                            <td className="text-slate-900 py-3 px-2">{service.service_name || 'Service'}</td>
-                                            <td className="text-left font-semibold text-slate-900 py-3 px-2">{(service.price * service.quantity).toLocaleString()}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-
-                    {/* Totals Section */}
-                    <div className="mt-8 pt-4 border-t border-slate-300">
-                        <table className="w-full border-collapse">
-                            <tbody>
-                                <tr>
-                                    <td className="text-left text-slate-600 pb-2 font-medium">Estimated Parts Total</td>
-                                    <td className="text-right font-semibold text-slate-900 pb-2 px-2" style={{ width: '140px' }}>
-                                        ₹ {partsTotal.toLocaleString()}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td className="text-left text-slate-600 pb-2 font-medium">Estimated Labour Total</td>
-                                    <td className="text-right font-semibold text-slate-900 pb-2 px-2">
-                                        ₹ {servicesTotal.toLocaleString()}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td className="text-left text-slate-600 pb-2 font-bold text-lg">Estimated Grand Total</td>
-                                    <td className="text-right font-black text-2xl text-primary pb-2 px-2">
-                                        ₹ {grandTotal.toLocaleString()}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <p className="text-[10px] text-slate-400 italic mt-6">* This is a computer-generated estimate and does not include taxes unless specified. Prices are subject to final invoice at the time of delivery.</p>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="mt-16 text-center">
-                        <p className="text-sm text-slate-600">Generated by Admin System</p>
-                        <p className="text-base font-bold text-slate-900 mt-2">SAI AUTO TECHNIC</p>
-                    </div>
-                </div>
+                    );
+                })}
             </div>
         </>
     );

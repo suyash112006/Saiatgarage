@@ -1,22 +1,18 @@
 import { getMonthlyRevenue } from '@/app/actions/analytics';
 import { getSession } from '@/app/actions/auth';
 import { redirect } from 'next/navigation';
-import { DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { DollarSign, TrendingUp, Calendar, ArrowLeft, IndianRupee } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
 export default async function RevenueReportPage() {
     const session = await getSession();
-    if (session?.role !== 'admin') {
-        redirect('/dashboard');
-    }
+    if (session?.role !== 'admin') redirect('/dashboard');
 
-    // Get current month data by default
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-
     const result = await getMonthlyRevenue(currentYear, currentMonth);
 
     if ('error' in result) {
@@ -28,15 +24,20 @@ export default async function RevenueReportPage() {
     }
 
     const { dailyBreakdown, monthTotal } = result;
+    const totalRev = Number(monthTotal.total_revenue ?? 0);
+    const totalInv = Number(monthTotal.total_invoices ?? 0);
+    const avgPerInvoice = totalInv > 0 ? Math.round(totalRev / totalInv) : 0;
 
     return (
         <div className="dashboard-container">
+
+            {/* ── Header ── */}
             <div className="page-header mb-8">
                 <div>
-                    <nav className="breadcrumbs text-muted mb-2">
+                    <nav className="breadcrumbs">
                         <Link href="/dashboard/reports" className="breadcrumb-item hover:text-primary">Reports</Link>
-                        <span className="breadcrumb-separator mx-1">/</span>
-                        <span className="breadcrumb-item active text-primary font-medium">Revenue Analysis</span>
+                        <span className="breadcrumb-separator">/</span>
+                        <span className="breadcrumb-item active">Revenue Analysis</span>
                     </nav>
                     <h1 className="page-title">Revenue Analysis</h1>
                     <p className="page-subtitle">
@@ -44,96 +45,110 @@ export default async function RevenueReportPage() {
                     </p>
                 </div>
                 <Link href="/dashboard/reports" className="btn btn-outline flex items-center gap-2">
-                    Back to Reports
+                    <ArrowLeft size={16} /> Back to Reports
                 </Link>
             </div>
 
-            {/* Month Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="card p-6 rounded-3xl border-2 border-green-200 bg-green-50">
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 rounded-2xl bg-green-100 border border-green-200">
-                            <DollarSign size={24} className="text-green-600" />
-                        </div>
+            {/* ── KPI Cards ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '20px', marginBottom: '28px' }}>
+                {/* Total Revenue */}
+                <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                    <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(22, 163, 74, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+                        <IndianRupee size={24} color="#16a34a" />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
-                        Total Revenue
-                    </h3>
-                    <p className="text-3xl font-black text-slate-900">
-                        ₹{monthTotal.total_revenue?.toLocaleString() || 0}
+                    <p style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px' }}>Total Revenue</p>
+                    <p style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', lineHeight: 1 }}>
+                        ₹{totalRev.toLocaleString()}
                     </p>
                 </div>
 
-                <div className="card p-6 rounded-3xl border-2 border-blue-200 bg-blue-50">
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 rounded-2xl bg-blue-100 border border-blue-200">
-                            <TrendingUp size={24} className="text-blue-600" />
-                        </div>
+                {/* Total Invoices */}
+                <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                    <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(37, 99, 235, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+                        <TrendingUp size={24} color="#2563eb" />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
-                        Total Invoices
-                    </h3>
-                    <p className="text-3xl font-black text-slate-900">
-                        {monthTotal.total_invoices || 0}
+                    <p style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px' }}>Total Invoices</p>
+                    <p style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', lineHeight: 1 }}>
+                        {totalInv}
+                    </p>
+                </div>
+
+                {/* Avg per Invoice */}
+                <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                    <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(124, 58, 237, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+                        <DollarSign size={24} color="#7c3aed" />
+                    </div>
+                    <p style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px' }}>Avg per Invoice</p>
+                    <p style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', lineHeight: 1 }}>
+                        ₹{avgPerInvoice.toLocaleString()}
                     </p>
                 </div>
             </div>
 
-            {/* Daily Breakdown */}
-            <div className="card p-8 rounded-3xl">
-                <h2 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2">
-                    <Calendar size={24} className="text-primary" />
-                    Daily Breakdown
-                </h2>
+            {/* ── Daily Breakdown Table ── */}
+            <div className="card" style={{ borderRadius: '20px', overflow: 'hidden', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                <div style={{ padding: '24px 28px', borderBottom: '1px solid var(--border)', background: 'transparent', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '10px', background: 'rgba(51, 65, 85, 0.05)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Calendar size={18} color="var(--text-muted)" />
+                    </div>
+                    <div>
+                        <h2 style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text-main)' }}>Daily Breakdown</h2>
+                        <p style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500 }}>Revenue per day this month</p>
+                    </div>
+                </div>
 
                 {!dailyBreakdown || dailyBreakdown.length === 0 ? (
-                    <div className="p-12 text-center">
-                        <DollarSign size={48} className="mx-auto text-slate-300 mb-4" />
-                        <p className="text-slate-500 font-bold">No revenue data for this month</p>
+                    <div style={{ padding: '60px', textAlign: 'center' }}>
+                        <div style={{ width: 64, height: 64, borderRadius: '20px', background: 'var(--bg-main)', border: '2px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                            <DollarSign size={28} color="var(--text-muted)" />
+                        </div>
+                        <p style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: '15px' }}>No revenue data for this month</p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b-2 border-slate-200">
-                                    <th className="text-left py-4 px-6 text-xs font-black uppercase tracking-widest text-slate-400">
-                                        Date
-                                    </th>
-                                    <th className="text-center py-4 px-6 text-xs font-black uppercase tracking-widest text-slate-400">
-                                        Invoices
-                                    </th>
-                                    <th className="text-right py-4 px-6 text-xs font-black uppercase tracking-widest text-slate-400">
-                                        Revenue
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {dailyBreakdown.map((day: any, index: number) => (
-                                    <tr key={index} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                                        <td className="py-5 px-6">
-                                            <div className="font-black text-slate-900">
-                                                {new Date(day.date).toLocaleDateString('en-US', {
-                                                    weekday: 'short',
-                                                    month: 'short',
-                                                    day: 'numeric'
-                                                })}
-                                            </div>
+                    <table className="data-table w-full">
+                        <thead>
+                            <tr style={{ background: 'transparent', borderBottom: '1px solid var(--border)' }}>
+                                <th className="text-left" style={{ padding: '16px 24px', fontSize: '18px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</th>
+                                <th className="text-center" style={{ padding: '16px 24px', fontSize: '18px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Invoices</th>
+                                <th className="text-right" style={{ padding: '16px 24px', fontSize: '18px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Revenue</th>
+                                <th className="text-right" style={{ padding: '16px 28px 16px 24px', fontSize: '18px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Share</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {dailyBreakdown.map((day: any, index: number) => {
+                                const totalRevForPct = totalRev > 0 ? totalRev : 1;
+                                const dayTotal = Number(day.daily_total ?? 0);
+                                const pct = Math.round((dayTotal / totalRevForPct) * 100);
+                                return (
+                                    <tr key={index} style={{ borderBottom: index === dailyBreakdown.length - 1 ? 'none' : '1px solid var(--border)' }}>
+                                        <td style={{ padding: '18px 24px' }}>
+                                            <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '15px' }}>
+                                                {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                            </span>
                                         </td>
-                                        <td className="py-5 px-6 text-center">
-                                            <span className="text-lg font-black text-slate-900">
+                                        <td style={{ padding: '18px 24px', textAlign: 'center' }}>
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: '8px', background: 'rgba(51, 65, 85, 0.05)', color: 'var(--text-main)', fontWeight: 800, fontSize: '14px', border: '1px solid var(--border)' }}>
                                                 {day.invoice_count}
                                             </span>
                                         </td>
-                                        <td className="py-5 px-6 text-right">
-                                            <span className="text-xl font-black text-green-600">
-                                                ₹{day.daily_total?.toLocaleString() || 0}
+                                        <td style={{ padding: '18px 24px', textAlign: 'right' }}>
+                                            <span style={{ fontSize: '18px', fontWeight: 900, color: '#16a34a' }}>
+                                                ₹{dayTotal.toLocaleString()}
                                             </span>
                                         </td>
+                                        <td style={{ padding: '18px 24px', textAlign: 'right' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px' }}>
+                                                <div style={{ width: 80, height: 8, borderRadius: 99, background: 'var(--bg-main)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                                                    <div style={{ width: `${pct}%`, height: '100%', borderRadius: 99, background: '#16a34a' }} />
+                                                </div>
+                                                <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-muted)', minWidth: '35px', textAlign: 'right' }}>{pct}%</span>
+                                            </div>
+                                        </td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                );
+                            })}
+                        </tbody>
+                    </table>
                 )}
             </div>
         </div>

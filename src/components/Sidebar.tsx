@@ -14,7 +14,8 @@ import {
   LogOut,
   Zap,
   ChevronLeft,
-  BarChart3
+  BarChart3,
+  Trash2
 } from 'lucide-react';
 import clsx from 'clsx';
 import { logoutAction } from '@/app/actions/auth';
@@ -25,6 +26,7 @@ const navItems = [
   { name: 'Customers', href: '/dashboard/customers', icon: Users },
   { name: 'Inventory', href: '/dashboard/inventory', icon: Layers },
   { name: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
+  { name: 'Trash', href: '/dashboard/trash', icon: Trash2 },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 
@@ -58,8 +60,8 @@ export default function Sidebar({ user }: { user?: any }) {
 
       <nav className="sidebar-nav">
         {navItems.map((item) => {
-          // RBAC: Inventory and Reports are admin-only
-          if ((item.name === 'Inventory' || item.name === 'Reports') && user?.role !== 'admin') return null;
+          // RBAC: Inventory, Reports, and Trash are admin-only
+          if ((item.name === 'Inventory' || item.name === 'Reports' || item.name === 'Trash') && user?.role !== 'admin') return null;
 
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href));
           return (

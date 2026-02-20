@@ -2,26 +2,33 @@
 
 import db from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { createNotification } from './notification';
 
 export async function createVehicle(formData: FormData) {
-    const vehicleNumber = formData.get('vehicleNumber') as string;
+    const vehicleNumber = (formData.get('vehicleNumber') as string)?.toUpperCase();
     const model = formData.get('model') as string;
+    const vin = (formData.get('vin') as string)?.trim()?.toUpperCase() || null;
     const customerId = formData.get('customerId');
 
     if (!vehicleNumber || !model || !customerId) {
-        return { error: 'All fields are required' };
+        return { error: 'Vehicle number and model are required' };
     }
 
     try {
-        await db.query(`
-            INSERT INTO vehicles (vehicle_number, model, customer_id)
-            VALUES ($1, $2, $3)
-        `, [vehicleNumber, model, customerId]);
+        const res = await db.query(`
+            INSERT INTO vehicles (vehicle_number, model, customer_id, vin)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id
+        `, [vehicleNumber, model, customerId, vin]);
+
+        const newVehicleId = res.rows[0].id;
 
         revalidatePath(`/dashboard/customers/${customerId}`);
+        await createNotification(`New Vehicle Added: ${model} (${vehicleNumber})${vin ? ` [VIN: ${vin}]` : ''}`, 'VEHICLE', newVehicleId);
         return { success: true };
     } catch (error: any) {
-        if (error.code === '23505') { // Postgres UNIQUE constraint
+        if (error.code === '23505') {
+            if (error.detail?.includes('vin')) return { error: 'VIN number already exists' };
             return { error: 'Vehicle number already exists' };
         }
         return { error: 'Failed to add vehicle' };
@@ -56,5 +63,13 @@ export async function getCustomerDetails(id: string) {
         LIMIT 10
     `, [id]);
 
-    return { customer, vehicles: vehiclesRes.rows, jobs: jobsRes.rows };
+    // Fetch car library for registration dropdowns
+    const libraryRes = await db.query(`
+        SELECT m.name as model, b.name as brand 
+        FROM vehicle_models m 
+        JOIN vehicle_brands b ON m.brand_id = b.id 
+        ORDER BY b.name, m.name
+    `);
+
+    return { customer, vehicles: vehiclesRes.rows, jobs: jobsRes.rows, carLibrary: libraryRes.rows };
 }

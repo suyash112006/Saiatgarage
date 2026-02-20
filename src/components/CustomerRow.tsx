@@ -7,9 +7,10 @@ import { deleteCustomer } from "@/app/actions/customer";
 interface CustomerRowProps {
     customer: any;
     index: number;
+    isAdmin: boolean;
 }
 
-export function CustomerRow({ customer, index }: CustomerRowProps) {
+export function CustomerRow({ customer, index, isAdmin }: CustomerRowProps) {
     const router = useRouter();
     const initials = customer.name ? customer.name.charAt(0).toUpperCase() : "?";
 
@@ -54,17 +55,19 @@ export function CustomerRow({ customer, index }: CustomerRowProps) {
                 </span>
             </td>
 
-            <td className="text-center">
-                <div className="flex justify-center gap-2">
-                    <button
-                        onClick={handleDelete}
-                        className="btn-icon danger animate-icon"
-                        title="Delete Customer"
-                    >
-                        <Trash2 size={16} />
-                    </button>
-                </div>
-            </td>
+            {isAdmin && (
+                <td className="text-center">
+                    <div className="flex justify-center gap-2">
+                        <button
+                            onClick={handleDelete}
+                            className="btn-icon danger animate-icon"
+                            title="Delete Customer"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    </div>
+                </td>
+            )}
         </tr>
     );
 }

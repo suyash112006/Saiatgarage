@@ -1,7 +1,7 @@
 import { getSession } from '@/app/actions/auth';
 import { redirect } from 'next/navigation';
-import { getMasterServices, getMasterParts } from '@/app/actions/job';
-import InventoryClient from '@/components/inventory/InventoryClient';
+import { Suspense } from 'react';
+import InventoryWrapper from '@/components/inventory/InventoryWrapper';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,16 +12,12 @@ export default async function InventoryPage(props: { searchParams: Promise<{ tab
     }
 
     const { tab = 'services' } = await props.searchParams;
-    const services = await getMasterServices();
-    const parts = await getMasterParts();
 
     return (
         <div className="dashboard-container">
-            <InventoryClient
-                initialServices={services}
-                initialParts={parts}
-                initialTab={tab}
-            />
+            <Suspense fallback={<div className="p-10 text-center text-muted">Loading inventory data...</div>}>
+                <InventoryWrapper tab={tab} />
+            </Suspense>
         </div>
     );
 }

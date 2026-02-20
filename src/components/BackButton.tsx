@@ -15,7 +15,13 @@ export default function BackButton() {
     return (
         <button
             onClick={() => router.back()}
-            className="flex items-center justify-center w-10 h-10 bg-white text-blue-600 border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:bg-slate-50 active:scale-95 transition-all group shrink-0"
+            className="flex items-center justify-center w-10 h-10 rounded-2xl shadow-sm hover:shadow-md transition-all group shrink-0"
+            style={{
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--primary)',
+                borderColor: 'var(--border)',
+                borderWidth: '1px'
+            }}
             title="Go Back"
         >
             <ArrowLeft size={20} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />

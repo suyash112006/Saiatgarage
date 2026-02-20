@@ -8,9 +8,10 @@ import { deleteCustomer } from "@/app/actions/customer";
 
 interface CustomerTableProps {
     initialCustomers: any[];
+    isAdmin: boolean;
 }
 
-export default function CustomerTable({ initialCustomers }: CustomerTableProps) {
+export default function CustomerTable({ initialCustomers, isAdmin }: CustomerTableProps) {
     const [search, setSearch] = useState("");
 
     async function handleDelete(id: number) {
@@ -53,13 +54,13 @@ export default function CustomerTable({ initialCustomers }: CustomerTableProps) 
                             <th>Name</th>
                             <th>Mobile</th>
                             <th>Address</th>
-                            <th className="text-center">Actions</th>
+                            {isAdmin && <th className="text-center">Actions</th>}
                         </tr>
                     </thead>
                     <tbody>
                         {filteredCustomers.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="p-12 text-center">
+                                <td colSpan={isAdmin ? 5 : 4} className="p-12 text-center">
                                     <div className="flex flex-col items-center justify-center text-slate-400">
                                         <div className="bg-slate-50 p-4 rounded-full mb-4">
                                             <User size={32} className="opacity-20" />
@@ -72,7 +73,7 @@ export default function CustomerTable({ initialCustomers }: CustomerTableProps) 
                             </tr>
                         ) : (
                             filteredCustomers.map((c: any, i: number) => (
-                                <CustomerRow key={c.id} customer={c} index={i} />
+                                <CustomerRow key={c.id} customer={c} index={filteredCustomers.length - 1 - i} isAdmin={isAdmin} />
                             ))
                         )}
                     </tbody>
