@@ -117,7 +117,10 @@ export default function AddServiceForm({ jobId, masterServices, isAdmin }: AddSe
                             </div>
 
                             {!selectedService && query.length > 0 && (
-                                <div className="mt-4 space-y-3 max-h-[285px] overflow-y-auto pr-2 custom-scrollbar">
+                                <div
+                                    className="mt-4 space-y-3 pr-2 custom-scrollbar"
+                                    style={{ maxHeight: '300px', overflowY: 'auto' }}
+                                >
                                     {filtered.length === 0 ? (
                                         <div className="p-8 text-center rounded-xl border-2 border-dashed" style={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border)', opacity: 0.5 }}>
                                             <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>No services found</p>
