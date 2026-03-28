@@ -91,6 +91,8 @@ async function initNeon() {
             price NUMERIC NOT NULL,
             quantity INTEGER DEFAULT 1,
             mechanic_id INTEGER REFERENCES users(id),
+            sort_order INTEGER DEFAULT 0,
+            is_future INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`,
 
@@ -113,6 +115,8 @@ async function initNeon() {
             part_no TEXT,
             price NUMERIC NOT NULL,
             quantity INTEGER DEFAULT 1,
+            sort_order INTEGER DEFAULT 0,
+            is_future INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`,
 

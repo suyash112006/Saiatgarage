@@ -2,6 +2,7 @@ import { getInvoice } from '@/app/actions/invoice';
 import { redirect } from 'next/navigation';
 import PrintInvoiceButton from '@/components/PrintInvoiceButton';
 import ShareInvoiceButton from '@/components/ShareInvoiceButton';
+import AutoDownloadPDF from '@/components/AutoDownloadPDF';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,8 +13,16 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     };
 }
 
-export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
+type SearchParams = Promise<{ download?: string }>;
+
+export default async function InvoicePage({ params, searchParams }: { 
+    params: Promise<{ id: string }>,
+    searchParams: SearchParams
+}) {
     const { id } = await params;
+    const { download } = await searchParams;
+    const isDownload = download === '1';
+
     const invoice = await getInvoice(Number(id));
 
     if (!invoice) redirect('/dashboard/invoices');
@@ -57,11 +66,9 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                     const pageServices = pageItems.filter(item => item.type === 'service');
 
                     return (
-                        <div key={pageIdx} className={`invoice-page ${!isLastPage ? 'page-break' : ''}`}>
-                            {/* Watermark */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 watermark-text -rotate-12 pointer-events-none select-none no-print">
-                                <h1 className="text-[12rem] font-black tracking-tighter">INVOICE</h1>
-                            </div>
+                        <div key={pageIdx} className={`invoice-page ${!isLastPage ? 'page-break' : ''} bg-white shadow-none`}>
+
+                            {/* Header - Show full branding only on first page */}
 
                             {/* Header - Show full branding only on first page */}
                             <div className="flex justify-between items-start mb-8 pb-6 border-b border-slate-100">
@@ -81,8 +88,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
 
                             {isFirstPage && (
                                 <>
-                                    <div className="text-center mb-8">
-                                        <h2 className="text-2xl font-black text-slate-900 tracking-[0.2em] uppercase py-1.5 inline-block px-12">INVOICE</h2>
+                                    <div className="text-left mb-8">
+                                        <h2 className="text-4xl font-black text-slate-900 tracking-[0.2em] uppercase leading-tight m-0">INVOICE</h2>
                                     </div>
 
                                     {/* Customer & Vehicle Info Table */}
@@ -248,6 +255,13 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                     );
                 })}
             </div>
+
+            {isDownload && (
+                <AutoDownloadPDF 
+                    elementSelector=".invoice-container" 
+                    filename={`Invoice_${invoice.invoice_no}.pdf`}
+                />
+            )}
         </>
     );
 }

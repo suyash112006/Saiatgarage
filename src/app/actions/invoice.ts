@@ -20,7 +20,7 @@ export async function generateInvoice(jobId: number) {
 
     try {
         // 1. Validate job exists and is COMPLETED
-        const jobRes = await db.query('SELECT id, status FROM job_cards WHERE id = $1', [jobId]);
+        const jobRes = await db.query('SELECT id, status, job_no FROM job_cards WHERE id = $1', [jobId]);
         const job = jobRes.rows[0];
         if (!job) return { error: 'Job not found' };
 
@@ -44,7 +44,7 @@ export async function generateInvoice(jobId: number) {
         // 4. Generate unique invoice number
         const now = new Date();
         const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
-        const invoiceNo = `INV-${dateStr}-${jobId}`;
+        const invoiceNo = `INV-${dateStr}-${job.job_no || jobId}`;
 
         // 5. Create invoice and update job status
         // Postgres transaction

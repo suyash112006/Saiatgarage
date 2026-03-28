@@ -36,7 +36,7 @@ export default function LoginPage() {
           <h1 className="logo">Garage<span>Pro</span></h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="auth-form" autoComplete="off">
           {error && <div className="auth-error">{error}</div>}
 
           <div className="form-group">
@@ -48,9 +48,9 @@ export default function LoginPage() {
                 type="email"
                 name="email"
                 id="email"
-                placeholder="admin@garage.com"
+                placeholder="email@example.com"
                 required
-                defaultValue="admin@garage.com"
+                autoComplete="off"
               />
             </div>
           </div>
@@ -66,7 +66,7 @@ export default function LoginPage() {
                 id="password"
                 placeholder="••••••••"
                 required
-                defaultValue="admin123"
+                autoComplete="new-password"
               />
               <button
                 type="button"

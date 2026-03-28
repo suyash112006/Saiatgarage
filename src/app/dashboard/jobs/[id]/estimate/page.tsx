@@ -3,6 +3,7 @@ import { getSession } from '@/app/actions/auth';
 import { notFound, redirect } from 'next/navigation';
 import PrintInvoiceButton from '@/components/PrintInvoiceButton';
 import ShareInvoiceButton from '@/components/ShareInvoiceButton';
+import AutoDownloadPDF from '@/components/AutoDownloadPDF';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,8 +14,16 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     };
 }
 
-export default async function EstimatePage(props: { params: Promise<{ id: string }> }) {
+type SearchParams = Promise<{ download?: string }>;
+
+export default async function EstimatePage(props: { 
+    params: Promise<{ id: string }>,
+    searchParams: SearchParams
+}) {
     const params = await props.params;
+    const searchParams = await props.searchParams;
+    const isDownload = searchParams.download === '1';
+
     const jobId = parseInt(params.id);
     const session = await getSession();
 
@@ -57,7 +66,7 @@ export default async function EstimatePage(props: { params: Promise<{ id: string
     const shareInvoice = {
         id: job.id,
         job_id: job.id,
-        invoice_no: `EST-${job.id}`,
+        invoice_no: `EST-${job.job_no || job.id}`,
         customer_name: job.customer_name,
         customer_mobile: job.mobile,
         grandTotal: grandTotal
@@ -80,11 +89,9 @@ export default async function EstimatePage(props: { params: Promise<{ id: string
                     const pageServices = pageItems.filter(item => item.type === 'service');
 
                     return (
-                        <div key={pageIdx} className={`invoice-page ${!isLastPage ? 'page-break' : ''}`}>
-                            {/* Watermark for Estimate */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 watermark-text -rotate-12 pointer-events-none select-none no-print">
-                                <h1 className="text-[12rem] font-black tracking-tighter">ESTIMATE</h1>
-                            </div>
+                        <div key={pageIdx} className={`invoice-page ${!isLastPage ? 'page-break' : ''} bg-white shadow-none`}>
+
+                            {/* Header - Show full branding only on first page */}
 
                             {/* Header - Show full branding only on first page */}
                             <div className="flex justify-between items-start mb-8 pb-6 border-b border-slate-100">
@@ -104,9 +111,9 @@ export default async function EstimatePage(props: { params: Promise<{ id: string
 
                             {isFirstPage && (
                                 <>
-                                    <div className="text-center mb-8 flex flex-col items-center">
-                                        <h2 className="text-2xl font-black text-slate-900 tracking-[0.2em] uppercase py-1.5 inline-block px-12">ESTIMATE</h2>
-                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">(Proforma Invoice / Subject to changes)</p>
+                                    <div className="text-left mb-8 flex flex-col items-start">
+                                        <h2 className="text-4xl font-black text-slate-900 tracking-[0.2em] uppercase leading-tight m-0">ESTIMATE</h2>
+                                        <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">(Proforma Invoice / Subject to changes)</p>
                                     </div>
 
                                     {/* Customer & Vehicle Info */}
@@ -267,6 +274,13 @@ export default async function EstimatePage(props: { params: Promise<{ id: string
                     );
                 })}
             </div>
+
+            {isDownload && (
+                <AutoDownloadPDF 
+                    elementSelector=".invoice-container" 
+                    filename={`Estimate_${job.job_no || job.id}.pdf`}
+                />
+            )}
         </>
     );
 }

@@ -63,6 +63,7 @@ body {
   --primary-light: #e0e7ff;
   --bg-main: #f8fafc;
   --bg-card: #ffffff;
+  --bg-card-rgb: 255, 255, 255;
   --bg-sidebar: #ffffff;
   --bg-sidebar-rgb: 255, 255, 255;
   --bg-topbar: #ffffff;
@@ -77,6 +78,7 @@ body {
 [data-theme="dark"] {
   --bg-main: #121212;
   --bg-card: #1c1c1c;
+  --bg-card-rgb: 28, 28, 28;
   --bg-sidebar: #121212;
   --bg-sidebar-rgb: 18, 18, 18;
   --bg-topbar: #000000;
@@ -1004,6 +1006,8 @@ a {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .page-title {
@@ -1041,6 +1045,13 @@ a {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px 24px;
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 }
 
 

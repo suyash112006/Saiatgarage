@@ -43,27 +43,27 @@ export default async function JobViewWrapper({ jobId }: JobViewWrapperProps) {
 
     return (
         <>
-            <div className="page-header mb-8">
+            <div className="page-header flex-col md:flex-row items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight mb-2" style={{ color: 'var(--text-main)' }}>Job Card #{job.job_no || job.id}</h1>
-                    <div className="flex items-center gap-4 text-sm">
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2" style={{ color: 'var(--text-main)' }}>Job Card #{job.job_no || job.id}</h1>
+                    <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm">
                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold uppercase tracking-wide" style={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
                             <span className={`w-2 h-2 rounded-full ${job.status === 'COMPLETED' ? 'bg-green-500' : job.status === 'IN_PROGRESS' ? 'bg-blue-500' : job.status === 'BILLED' ? 'bg-purple-500' : 'bg-slate-400'}`}></span>
                             {job.status}
                         </div>
                         <span style={{ color: 'var(--border)' }}>|</span>
-                        <div className="flex items-center gap-2.5 font-medium">
+                        <div className="flex items-center gap-2.5 font-medium whitespace-nowrap">
                             <Car size={16} style={{ color: 'var(--text-muted)' }} />
                             <span style={{ color: 'var(--text-main)' }}>{job.model}</span>
                         </div>
-                        <span style={{ color: 'var(--border)' }}>|</span>
-                        <div className="font-mono font-bold px-2 py-0.5 rounded border" style={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border)', color: 'var(--text-main)' }}>
+                        <span style={{ color: 'var(--border)' }} className="hidden sm:inline">|</span>
+                        <div className="font-mono font-bold px-2 py-0.5 rounded border whitespace-nowrap" style={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border)', color: 'var(--text-main)' }}>
                             {job.vehicle_number}
                         </div>
                     </div>
                 </div>
 
-                <div className="flex gap-4 items-center">
+                <div className="flex flex-wrap gap-2 md:gap-4 items-center w-full md:w-auto">
                     {isAdmin && (job.status === 'COMPLETED' || job.status === 'BILLED') && (services.length > 0 || parts.length > 0) && (
                         <form action={async () => {
                             'use server';
@@ -85,7 +85,6 @@ export default async function JobViewWrapper({ jobId }: JobViewWrapperProps) {
                     {isAdmin && (services.length > 0 || parts.length > 0) && (
                         <Link
                             href={`/dashboard/jobs/${job.id}/estimate`}
-                            target="_blank"
                             className="btn btn-outline border-2 shadow-sm flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black uppercase tracking-wider transition-all"
                             title="Print Estimate / Proforma"
                         >
@@ -287,9 +286,9 @@ export default async function JobViewWrapper({ jobId }: JobViewWrapperProps) {
                     </CollapsibleSection>
 
                     <CollapsibleSection title="In Future Work" icon={<Clock className="w-[18px] h-[18px] md:w-[22px] md:h-[22px] text-primary" />}>
-                        <div className="p-4 mb-4 text-xs bg-blue-50/50 text-blue-600 rounded-xl border border-blue-100 flex items-center gap-2">
-                            <Hash size={14} />
-                            <span>Items listed here are <b>not included</b> in the current bill total. Click an item to move it back to the active job.</span>
+                        <div className="p-4 mb-4 text-xs bg-amber-50/60 text-amber-700 rounded-xl border border-amber-100 flex items-center gap-2">
+                            <Clock size={14} />
+                            <span>Items here are <b>not billed</b> in the current job. Use <b>Restore</b> on any item to move it back to the active list.</span>
                         </div>
                         
                         {(futureServices.length > 0 || futureParts.length > 0) ? (
@@ -323,8 +322,8 @@ export default async function JobViewWrapper({ jobId }: JobViewWrapperProps) {
                             </div>
                         ) : (
                             <div className="py-12 text-center border-2 border-dashed border-slate-100 rounded-2xl">
-                                <p className="text-sm text-slate-400 font-medium italic">No future recommendations added</p>
-                                <p className="text-[10px] text-slate-300 uppercase tracking-tighter mt-1">Tip: Click an active service to move it here</p>
+                                <p className="text-sm text-slate-400 font-medium italic">No future recommendations yet</p>
+                                <p className="text-[10px] text-slate-300 uppercase tracking-tighter mt-1">Tip: Click the <b>Future</b> button on any active service or part</p>
                             </div>
                         )}
                     </CollapsibleSection>

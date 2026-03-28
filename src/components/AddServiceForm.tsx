@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Plus, Minus, X, Search, Check, Settings, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Plus, Minus, X, Search, Check, Wrench, Loader2, Zap, ChevronRight, ShoppingCart } from 'lucide-react';
 import { addJobServices } from '@/app/actions/job';
 import { toast } from 'sonner';
 
@@ -11,12 +11,27 @@ interface AddServiceFormProps {
     isAdmin: boolean;
 }
 
+const CATEGORY_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
+    ELECTRICAL: { bg: 'rgba(234,179,8,0.12)', text: '#eab308', icon: '⚡' },
+    GENERAL:    { bg: 'rgba(59,130,246,0.12)', text: '#3b82f6', icon: '🔧' },
+    MECHANICAL: { bg: 'rgba(239,68,68,0.12)', text: '#ef4444', icon: '⚙️' },
+    BODYWORK:   { bg: 'rgba(168,85,247,0.12)', text: '#a855f7', icon: '🚗' },
+    AC:         { bg: 'rgba(6,182,212,0.12)', text: '#06b6d4', icon: '❄️' },
+    TYRES:      { bg: 'rgba(59,130,246,0.12)', text: '#3b82f6', icon: '🔴' },
+};
+
+function getCategoryStyle(cat: string) {
+    const upper = (cat || 'GENERAL').toUpperCase();
+    return CATEGORY_COLORS[upper] || { bg: 'rgba(100,116,139,0.12)', text: '#64748b', icon: '🔩' };
+}
+
 export default function AddServiceForm({ jobId, masterServices, isAdmin }: AddServiceFormProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [query, setQuery] = useState('');
     const [selectedServices, setSelectedServices] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const modalRef = useRef<HTMLDivElement>(null);
+    const searchRef = useRef<HTMLInputElement>(null);
 
     function handleClose() {
         setIsOpen(false);
@@ -27,35 +42,57 @@ export default function AddServiceForm({ jobId, masterServices, isAdmin }: AddSe
 
     useEffect(() => {
         if (!isOpen) return;
+        const t = setTimeout(() => searchRef.current?.focus(), 80);
         function handleOutsideClick(e: MouseEvent) {
             if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
                 handleClose();
             }
         }
+        function handleKey(e: KeyboardEvent) {
+            if (e.key === 'Escape') handleClose();
+        }
         document.addEventListener('mousedown', handleOutsideClick);
-        return () => document.removeEventListener('mousedown', handleOutsideClick);
+        document.addEventListener('keydown', handleKey);
+        return () => {
+            clearTimeout(t);
+            document.removeEventListener('mousedown', handleOutsideClick);
+            document.removeEventListener('keydown', handleKey);
+        };
     }, [isOpen]);
 
-    const filtered = (masterServices || []).filter(s =>
-        s && s.name && (
-            s.name.toLowerCase().includes(query.toLowerCase()) ||
-            s.category.toLowerCase().includes(query.toLowerCase())
-        )
-    );
+    const filtered = useMemo(() => {
+        const list = (masterServices || []).filter(s => s && s.name);
+        if (!query.trim()) return list;
+        const q = query.toLowerCase();
+        return list.filter(s =>
+            s.name.toLowerCase().includes(q) ||
+            (s.category || '').toLowerCase().includes(q)
+        );
+    }, [masterServices, query]);
+
+    // Group by category
+    const grouped = useMemo(() => {
+        const map: Record<string, any[]> = {};
+        (filtered.slice(0, 80)).forEach(s => {
+            const cat = (s.category || 'GENERAL').toUpperCase();
+            if (!map[cat]) map[cat] = [];
+            map[cat].push(s);
+        });
+        return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
+    }, [filtered]);
 
     const toggleService = (service: any) => {
         if (selectedServices.find(s => s.id === service.id)) {
-            setSelectedServices(selectedServices.filter(s => s.id !== service.id));
+            setSelectedServices(prev => prev.filter(s => s.id !== service.id));
         } else {
-            setSelectedServices([...selectedServices, { ...service, quantity: 1 }]);
+            setSelectedServices(prev => [...prev, { ...service, quantity: 1 }]);
         }
     };
 
     const updateServiceQuantity = (serviceId: number, delta: number) => {
-        setSelectedServices(selectedServices.map(s => {
+        setSelectedServices(prev => prev.map(s => {
             if (s.id === serviceId) {
-                const newQty = Math.max(1, (s.quantity || 1) + delta);
-                return { ...s, quantity: newQty };
+                return { ...s, quantity: Math.max(1, (s.quantity || 1) + delta) };
             }
             return s;
         }));
@@ -64,19 +101,12 @@ export default function AddServiceForm({ jobId, masterServices, isAdmin }: AddSe
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         if (selectedServices.length === 0) return;
-        
         setLoading(true);
-
         try {
-            const servicesWithQty = selectedServices.map(s => ({ 
-                id: s.id, 
-                quantity: s.quantity || 1 
-            }));
-            const res = await addJobServices(jobId, servicesWithQty);
+            const res = await addJobServices(jobId, selectedServices.map(s => ({ id: s.id, quantity: s.quantity || 1 })));
             if (res.success) {
-                toast.success(`${selectedServices.length} services added successfully`);
+                toast.success(`${selectedServices.length} service${selectedServices.length > 1 ? 's' : ''} added`);
                 handleClose();
-                return;
             } else {
                 toast.error(res.error || 'Failed to add services');
                 setLoading(false);
@@ -91,157 +121,367 @@ export default function AddServiceForm({ jobId, masterServices, isAdmin }: AddSe
         return (
             <button
                 onClick={() => setIsOpen(true)}
-                className="btn btn-primary flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all"
+                style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '10px 20px', borderRadius: '12px',
+                    background: 'var(--primary)', color: '#fff',
+                    border: 'none', cursor: 'pointer', fontWeight: 700,
+                    fontSize: '14px', boxShadow: '0 4px 14px rgba(59,130,246,0.35)',
+                    transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.03)')}
+                onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
             >
-                <Plus size={18} />
+                <Plus size={16} strokeWidth={3} />
                 Add Service
             </button>
         );
     }
 
+    const totalSelected = selectedServices.length;
+
     return (
-        <div className="modal-overlay">
-            <div className="modal-content max-w-lg" ref={modalRef}>
-                <div className="modal-header">
-                    <div className="modal-header-left">
-                        <div className="card-icon">
-                            <Plus size={18} />
+        <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '16px',
+            animation: 'fadeIn 0.15s ease',
+        }}>
+            <style>{`
+                @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+                @keyframes slideUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
+                .svc-row:hover { background: rgba(59,130,246,0.06) !important; }
+                .svc-row-selected:hover { background: rgba(59,130,246,0.18) !important; }
+                .qty-btn:hover { background: rgba(59,130,246,0.2) !important; transform: scale(1.1); }
+                .close-x:hover { background: rgba(239,68,68,0.12) !important; color: #ef4444 !important; }
+                .cancel-btn:hover { border-color: var(--primary) !important; color: var(--primary) !important; }
+            `}</style>
+
+            <div ref={modalRef} style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                borderRadius: '20px',
+                width: '100%', maxWidth: '520px',
+                maxHeight: '90vh',
+                display: 'flex', flexDirection: 'column',
+                boxShadow: '0 24px 80px rgba(0,0,0,0.4)',
+                animation: 'slideUp 0.2s ease',
+                overflow: 'hidden',
+            }}>
+
+                {/* ── Header ── */}
+                <div style={{
+                    padding: '20px 24px 0',
+                    display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+                    flexShrink: 0,
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{
+                            width: '44px', height: '44px', borderRadius: '14px',
+                            background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 4px 12px rgba(59,130,246,0.4)',
+                            flexShrink: 0,
+                        }}>
+                            <Wrench size={20} color="#fff" />
                         </div>
                         <div>
-                            <h3 style={{ color: 'var(--text-main)' }}>Add Job Service</h3>
-                            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Select and add multiple services to this job card</p>
+                            <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.3px' }}>
+                                Add Job Services
+                            </h3>
+                            <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                                Select one or more services to add
+                            </p>
                         </div>
                     </div>
-                    <button onClick={handleClose} type="button" className="icon-btn" title="Close">
-                        <X size={18} />
+                    <button
+                        className="close-x"
+                        type="button"
+                        onClick={handleClose}
+                        title="Close"
+                        style={{
+                            width: '34px', height: '34px', borderRadius: '10px',
+                            border: '1px solid var(--border)', background: 'transparent',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', color: 'var(--text-muted)',
+                            transition: 'all 0.15s', flexShrink: 0,
+                        }}
+                    >
+                        <X size={16} />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit}>
-                    <input type="hidden" name="jobId" value={jobId} />
+                {/* ── Search ── */}
+                <div style={{ padding: '16px 24px 12px', flexShrink: 0 }}>
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        padding: '10px 14px',
+                        background: 'var(--bg-main)',
+                        border: '1.5px solid var(--border)',
+                        borderRadius: '12px',
+                        transition: 'border-color 0.2s',
+                    }}
+                        onFocus={() => {}}
+                    >
+                        <Search size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                        <input
+                            ref={searchRef}
+                            type="text"
+                            value={query}
+                            onChange={e => setQuery(e.target.value)}
+                            placeholder="Search by name or category…"
+                            style={{
+                                border: 'none', outline: 'none', background: 'transparent',
+                                fontSize: '14px', color: 'var(--text-main)', width: '100%',
+                            }}
+                        />
+                        {query && (
+                            <button type="button" onClick={() => setQuery('')}
+                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 0 }}>
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
+                </div>
 
-                    <div className="modal-body space-y-5">
-                        <div className="form-field">
-                            <div className="flex justify-between items-center mb-2">
-                                <label className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Select Service</label>
-                                {selectedServices.length > 0 && (
-                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-primary text-white animate-in zoom-in">
-                                        {selectedServices.length} Selected
-                                    </span>
-                                )}
+                {/* ── Selected chips strip ── */}
+                {selectedServices.length > 0 && (
+                    <div style={{
+                        padding: '0 24px 10px',
+                        display: 'flex', flexWrap: 'wrap', gap: '6px', flexShrink: 0,
+                        borderBottom: '1px solid var(--border)',
+                    }}>
+                        {selectedServices.map(s => (
+                            <div key={s.id} style={{
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                padding: '4px 10px', borderRadius: '999px',
+                                background: 'rgba(59,130,246,0.12)',
+                                border: '1px solid rgba(59,130,246,0.25)',
+                                fontSize: '12px', fontWeight: 700, color: '#3b82f6',
+                            }}>
+                                <span>{s.name}</span>
+                                <span style={{
+                                    background: 'rgba(59,130,246,0.2)', borderRadius: '999px',
+                                    padding: '0 5px', fontSize: '11px',
+                                }}>×{s.quantity}</span>
+                                <button type="button" onClick={() => toggleService(s)}
+                                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#3b82f6', display: 'flex', padding: 0, marginLeft: '2px', opacity: 0.7 }}>
+                                    <X size={11} />
+                                </button>
                             </div>
-                            <div className="input-wrapper relative">
-                                <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
-                                <input
-                                    type="text"
-                                    placeholder="Search service..."
-                                    value={query}
-                                    onChange={(e) => setQuery(e.target.value)}
-                                    className="pl-10"
-                                    autoFocus
-                                />
+                        ))}
+                    </div>
+                )}
+
+                {/* ── Service List ── */}
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '8px 24px' }} className="custom-scrollbar">
+                        {grouped.length === 0 ? (
+                            <div style={{
+                                padding: '48px 24px', textAlign: 'center',
+                                color: 'var(--text-muted)', fontSize: '13px',
+                            }}>
+                                <Search size={32} style={{ margin: '0 auto 12px', opacity: 0.3, display: 'block' }} />
+                                No services found for <strong>"{query}"</strong>
                             </div>
-                        </div>
+                        ) : (
+                            grouped.map(([cat, services]) => {
+                                const style = getCategoryStyle(cat);
+                                return (
+                                    <div key={cat} style={{ marginBottom: '16px' }}>
+                                        {/* Category header */}
+                                        <div style={{
+                                            display: 'flex', alignItems: 'center', gap: '8px',
+                                            padding: '6px 0', marginBottom: '4px',
+                                        }}>
+                                            <span style={{ fontSize: '13px' }}>{style.icon}</span>
+                                            <span style={{
+                                                fontSize: '10px', fontWeight: 800,
+                                                letterSpacing: '0.08em', textTransform: 'uppercase',
+                                                color: style.text,
+                                            }}>{cat}</span>
+                                            <div style={{
+                                                flex: 1, height: '1px',
+                                                background: `linear-gradient(to right, ${style.text}40, transparent)`,
+                                            }} />
+                                            <span style={{
+                                                fontSize: '10px', fontWeight: 700,
+                                                color: style.text, opacity: 0.7,
+                                            }}>{services.length}</span>
+                                        </div>
 
-                        <div
-                            className="space-y-3 pr-2 custom-scrollbar"
-                            style={{ maxHeight: '350px', overflowY: 'auto', marginTop: '10px' }}
-                        >
-                            {query.length > 0 && filtered.length === 0 ? (
-                                <div className="p-8 text-center rounded-xl border-2 border-dashed" style={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border)', opacity: 0.5 }}>
-                                    <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>No services found</p>
-                                </div>
-                            ) : (
-                                (query.length > 0 ? filtered : (masterServices || []).slice(0, 50)).map((s) => {
-                                    const isSelected = !!selectedServices.find(sel => sel.id === s.id);
-                                    return (
-                                        <button
-                                            key={s.id}
-                                            type="button"
-                                            onClick={() => toggleService(s)}
-                                            className="w-full text-left p-3 rounded-xl transition-all flex justify-between items-center group mb-2 last:mb-0 active:scale-[0.98]"
-                                            style={{ 
-                                                backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-main)', 
-                                                border: isSelected ? '1px solid var(--primary)' : '1px solid transparent',
-                                                outline: 'none' 
-                                            }}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors shrink-0" style={{ backgroundColor: isSelected ? 'var(--primary)' : 'var(--bg-card)', color: isSelected ? '#fff' : 'var(--text-muted)' }}>
-                                                    {isSelected ? <Check size={18} /> : <Settings size={18} />}
-                                                </div>
-                                                <div>
-                                                    <div className="text-sm font-bold" style={{ color: 'var(--text-main)' }}>{s.name}</div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-4">
-                                                {isSelected && (
-                                                    <div className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] rounded-lg p-1" onClick={(e) => e.stopPropagation()}>
-                                                        <button 
-                                                            type="button"
-                                                            onClick={() => updateServiceQuantity(s.id, -1)}
-                                                            className="w-7 h-7 flex items-center justify-center rounded-md bg-[#334155] hover:bg-[#475569] text-blue-400 transition-all active:scale-95"
-                                                        >
-                                                            <Minus size={14} strokeWidth={3} />
-                                                        </button>
-                                                        <span className="text-xs font-bold w-5 text-center" style={{ color: 'var(--text-main)' }}>
-                                                            {selectedServices.find(sel => sel.id === s.id)?.quantity || 1}
-                                                        </span>
-                                                        <button 
-                                                            type="button"
-                                                            onClick={() => updateServiceQuantity(s.id, 1)}
-                                                            className="w-7 h-7 flex items-center justify-center rounded-md bg-[#334155] hover:bg-[#475569] text-blue-400 transition-all active:scale-95"
-                                                        >
-                                                            <Plus size={14} strokeWidth={3} />
-                                                        </button>
-                                                    </div>
-                                                )}
-
-                                                <div className="text-right flex flex-col items-end gap-1">
-                                                    {isAdmin && (
-                                                        <div className="text-sm font-black" style={{ color: 'var(--text-main)' }}>
-                                                            ₹{s.base_price}
+                                        {/* Service rows */}
+                                        {services.map(s => {
+                                            const isSelected = !!selectedServices.find(sel => sel.id === s.id);
+                                            const selItem = selectedServices.find(sel => sel.id === s.id);
+                                            return (
+                                                <div
+                                                    key={s.id}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={() => toggleService(s)}
+                                                    onKeyDown={e => e.key === 'Enter' && toggleService(s)}
+                                                    className={isSelected ? 'svc-row-selected' : 'svc-row'}
+                                                    style={{
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                        padding: '10px 14px',
+                                                        borderRadius: '12px',
+                                                        marginBottom: '3px',
+                                                        cursor: 'pointer',
+                                                        border: '1.5px solid',
+                                                        borderColor: isSelected ? 'rgba(59,130,246,0.4)' : 'transparent',
+                                                        background: isSelected ? 'rgba(59,130,246,0.08)' : 'var(--bg-main)',
+                                                        transition: 'all 0.15s',
+                                                        outline: 'none',
+                                                        userSelect: 'none',
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                                                        {/* Checkbox */}
+                                                        <div style={{
+                                                            width: '22px', height: '22px', borderRadius: '7px', flexShrink: 0,
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            border: isSelected ? 'none' : '1.5px solid var(--border)',
+                                                            background: isSelected
+                                                                ? 'linear-gradient(135deg,#3b82f6,#6366f1)'
+                                                                : 'var(--bg-card)',
+                                                            boxShadow: isSelected ? '0 2px 8px rgba(59,130,246,0.4)' : 'none',
+                                                            transition: 'all 0.15s',
+                                                        }}>
+                                                            {isSelected && <Check size={13} color="#fff" strokeWidth={3} />}
                                                         </div>
-                                                    )}
-                                                    <div className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider" style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', boxShadow: 'none' }}>
-                                                        {s.category}
+                                                        <span style={{
+                                                            fontSize: '14px', fontWeight: isSelected ? 700 : 600,
+                                                            color: isSelected ? 'var(--text-main)' : 'var(--text-main)',
+                                                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                                        }}>
+                                                            {s.name}
+                                                        </span>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                                                        {/* Quantity controls */}
+                                                        {isSelected && (
+                                                            <div
+                                                                onClick={e => e.stopPropagation()}
+                                                                style={{
+                                                                    display: 'flex', alignItems: 'center', gap: '4px',
+                                                                    background: 'var(--bg-card)',
+                                                                    border: '1px solid var(--border)',
+                                                                    borderRadius: '8px', padding: '3px',
+                                                                }}
+                                                            >
+                                                                <button
+                                                                    type="button"
+                                                                    className="qty-btn"
+                                                                    onClick={() => updateServiceQuantity(s.id, -1)}
+                                                                    style={{
+                                                                        width: '24px', height: '24px', borderRadius: '6px',
+                                                                        border: 'none', background: 'transparent',
+                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                        cursor: 'pointer', color: '#3b82f6', transition: 'all 0.15s',
+                                                                    }}
+                                                                >
+                                                                    <Minus size={12} strokeWidth={3} />
+                                                                </button>
+                                                                <span style={{
+                                                                    fontSize: '12px', fontWeight: 800, minWidth: '20px',
+                                                                    textAlign: 'center', color: 'var(--text-main)',
+                                                                }}>
+                                                                    {selItem?.quantity || 1}
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    className="qty-btn"
+                                                                    onClick={() => updateServiceQuantity(s.id, 1)}
+                                                                    style={{
+                                                                        width: '24px', height: '24px', borderRadius: '6px',
+                                                                        border: 'none', background: 'transparent',
+                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                        cursor: 'pointer', color: '#3b82f6', transition: 'all 0.15s',
+                                                                    }}
+                                                                >
+                                                                    <Plus size={12} strokeWidth={3} />
+                                                                </button>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Price */}
+                                                        {isAdmin && (
+                                                            <span style={{
+                                                                fontSize: '13px', fontWeight: 800,
+                                                                color: isSelected ? '#3b82f6' : 'var(--text-muted)',
+                                                                minWidth: '50px', textAlign: 'right',
+                                                            }}>
+                                                                ₹{s.base_price}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </button>
-                                    );
-                                })
-                            )}
-                        </div>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })
+                        )}
                     </div>
 
-                    <div className="modal-footer">
-                        <button
-                            type="button"
-                            onClick={handleClose}
-                            className="btn btn-outline"
-                            disabled={loading}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={selectedServices.length === 0 || loading}
-                            className="btn btn-primary"
-                        >
-                            {loading ? (
-                                <span className="flex items-center gap-2">
-                                    <Loader2 className="animate-spin" size={18} />
-                                    Saving...
-                                </span>
-                            ) : (
-                                <>
-                                    <Plus size={18} className="mr-2" />
-                                    Save Service
-                                </>
-                            )}
-                        </button>
+                    {/* ── Footer ── */}
+                    <div style={{
+                        padding: '16px 24px',
+                        borderTop: '1px solid var(--border)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        gap: '12px', flexShrink: 0,
+                        background: 'var(--bg-card)',
+                    }}>
+                        {/* Selection count */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '13px' }}>
+                            <ShoppingCart size={15} />
+                            {totalSelected === 0
+                                ? <span>Nothing selected</span>
+                                : <span><strong style={{ color: 'var(--text-main)' }}>{totalSelected}</strong> service{totalSelected > 1 ? 's' : ''}</span>
+                            }
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                                type="button"
+                                className="cancel-btn"
+                                onClick={handleClose}
+                                disabled={loading}
+                                style={{
+                                    padding: '9px 18px', borderRadius: '10px',
+                                    border: '1.5px solid var(--border)', background: 'transparent',
+                                    color: 'var(--text-muted)', fontWeight: 600, fontSize: '13px',
+                                    cursor: 'pointer', transition: 'all 0.15s',
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={totalSelected === 0 || loading}
+                                style={{
+                                    padding: '9px 20px', borderRadius: '10px',
+                                    background: totalSelected === 0 ? 'var(--border)' : 'linear-gradient(135deg,#3b82f6,#6366f1)',
+                                    color: totalSelected === 0 ? 'var(--text-muted)' : '#fff',
+                                    border: 'none', fontWeight: 700, fontSize: '13px',
+                                    cursor: totalSelected === 0 ? 'not-allowed' : 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: '8px',
+                                    boxShadow: totalSelected > 0 ? '0 4px 14px rgba(59,130,246,0.35)' : 'none',
+                                    transition: 'all 0.2s',
+                                    minWidth: '130px', justifyContent: 'center',
+                                }}
+                            >
+                                {loading ? (
+                                    <><Loader2 className="animate-spin" size={15} /> Saving…</>
+                                ) : (
+                                    <><Plus size={15} strokeWidth={3} /> Save {totalSelected > 0 ? `(${totalSelected})` : 'Services'}</>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>

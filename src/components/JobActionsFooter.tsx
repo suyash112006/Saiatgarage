@@ -23,7 +23,15 @@ export default function JobActionsFooter({ children }: { children: ReactNode }) 
     if (isMobile) {
         // Portal to body for fixed positioning on mobile
         return createPortal(
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] z-50 flex gap-3 pb-safe">
+            <div 
+                className="fixed bottom-0 left-0 right-0 p-4 border-t z-50 flex gap-3 pb-safe"
+                style={{ 
+                    backgroundColor: 'rgba(var(--bg-card-rgb, 255, 255, 255), 0.8)', 
+                    backdropFilter: 'blur(10px)',
+                    borderColor: 'var(--border)',
+                    boxShadow: '0 -4px 20px rgba(0,0,0,0.08)'
+                }}
+            >
                 {children}
             </div>,
             document.body
