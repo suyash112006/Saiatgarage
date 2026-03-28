@@ -43,9 +43,9 @@ export default function CarLibraryList({ initialLibrary, onEdit }: { initialLibr
     return (
         <div className="card max-w-full">
             {/* Search Section */}
-            <div className="px-8 py-4">
-                <div className="search-wrap">
-                    <Search />
+            <div className="table-toolbar">
+                <div className="search-box" style={{ width: '280px', margin: 0 }}>
+                    <Search size={16} />
                     <input
                         type="text"
                         placeholder="Search by brand or model..."

@@ -391,7 +391,7 @@ body {
     top: 0;
     left: -280px;
     width: 280px !important;
-    height: 100vh !important;
+    height: 100dvh !important;
     flex-direction: column;
     border-right: 1px solid var(--border);
     border-top: none;
@@ -444,8 +444,9 @@ body {
     padding: 16px;
     border-top: 1px solid var(--border);
     border-left: none;
-    margin-top: auto;
+    margin-top: 20px; /* Adjusting upper side as requested */
     width: 100%;
+    margin-bottom: auto; /* Allow content to flow naturally */
   }
 
   .sidebar-footer .logout-pill {
@@ -467,8 +468,6 @@ body {
   }
 
   .sidebar-nav {
-    flex: 1;
-    min-height: 0;
     flex-direction: column;
     padding: 12px;
     overflow-y: auto;

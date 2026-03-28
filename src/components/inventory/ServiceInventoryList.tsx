@@ -34,9 +34,9 @@ export default function ServiceInventoryList({ initialServices, onEdit }: { init
     return (
         <div className="card max-w-full">
             {/* Search Section */}
-            <div className="px-8 pb-4">
-                <div className="search-wrap">
-                    <Search />
+            <div className="table-toolbar">
+                <div className="search-box" style={{ width: '280px', margin: 0 }}>
+                    <Search size={16} />
                     <input
                         type="text"
                         placeholder="Search services or categories..."

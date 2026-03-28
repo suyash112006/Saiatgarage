@@ -45,22 +45,8 @@ export default function InventoryClient({
     }
 
     return (
-        <div className="dashboard-container">
-            {/* Header Section */}
-            <div className="page-header">
-                <div>
-                    <nav className="breadcrumbs mb-1">
-                        <span className="breadcrumb-item">Dashboard</span>
-                        <span className="breadcrumb-separator mx-1">/</span>
-                        <span className="breadcrumb-item active">Inventory</span>
-                    </nav>
-                    <h1 className="page-title flex items-center gap-3">
-                        <Layers className="text-primary" size={28} />
-                        Inventory
-                    </h1>
-                    <p className="page-subtitle">Manage global services and parts inventory</p>
-                </div>
-
+        <>
+            <div className="flex justify-end mb-6">
                 <button
                     onClick={handleAddNew}
                     className="btn btn-primary flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-primary/25 hover:shadow-xl hover:scale-[1.02] transition-all"
@@ -116,6 +102,6 @@ export default function InventoryClient({
                 initialData={editingItem}
                 brands={initialBrands}
             />
-        </div>
+        </>
     );
 }
