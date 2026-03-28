@@ -29,6 +29,11 @@ export default function ProfileCard({ user }: ProfileCardProps) {
         confirm: ''
     });
 
+    const cancelEdit = () => {
+        setForm({ name: user.name, email: user.email });
+        setIsEditing(false);
+    };
+
     // Handle ESC to cancel
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -40,11 +45,6 @@ export default function ProfileCard({ user }: ProfileCardProps) {
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [isEditing, showPasswordModal]);
-
-    const cancelEdit = () => {
-        setForm({ name: user.name, email: user.email });
-        setIsEditing(false);
-    };
 
     const handleSave = async () => {
         if (!form.name.trim() || !form.email.trim()) {

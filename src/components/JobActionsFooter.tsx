@@ -7,18 +7,18 @@ import { useEffect, useState } from 'react';
 // This component teleports actions to a fixed bottom bar on mobile
 // On desktop, it renders them normally (or rather, the parent handles desktop layout)
 export default function JobActionsFooter({ children }: { children: ReactNode }) {
-    const [mounted, setMounted] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
+    const [isMobile, setIsMobile] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return window.innerWidth < 768;
+        }
+        return false;
+    });
 
     useEffect(() => {
-        setMounted(true);
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
-        checkMobile();
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
-
-    if (!mounted) return null;
 
     if (isMobile) {
         // Portal to body for fixed positioning on mobile

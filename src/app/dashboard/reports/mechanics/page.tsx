@@ -44,8 +44,8 @@ export default async function MechanicPerformancePage() {
             </div>
 
             {/* ── KPI Cards ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '20px', marginBottom: '28px' }}>
-                <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+            <div className="stats-grid">
+                <div className="stats-card">
                     <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(217, 119, 6, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
                         <Wrench size={24} color="#d97706" />
                     </div>
@@ -53,7 +53,7 @@ export default async function MechanicPerformancePage() {
                     <p style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', lineHeight: 1 }}>{mechanics.length}</p>
                 </div>
 
-                <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                <div className="stats-card">
                     <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(22, 163, 74, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
                         <TrendingUp size={24} color="#16a34a" />
                     </div>
@@ -61,7 +61,7 @@ export default async function MechanicPerformancePage() {
                     <p style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', lineHeight: 1 }}>{totalJobs}</p>
                 </div>
 
-                <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                <div className="stats-card">
                     <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(37, 99, 235, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
                         <Award size={24} color="#2563eb" />
                     </div>
@@ -91,69 +91,71 @@ export default async function MechanicPerformancePage() {
                             <p style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500 }}>Ranked by completed jobs</p>
                         </div>
                     </div>
-                    <table className="data-table w-full">
-                        <thead>
-                            <tr>
-                                <th className="text-left" style={{ fontSize: '18px' }}>Mechanic</th>
-                                <th className="text-center" style={{ fontSize: '18px' }}>Jobs Completed</th>
-                                <th className="text-center" style={{ fontSize: '18px' }}>Avg Days/Job</th>
-                                <th className="text-center" style={{ fontSize: '18px' }}>Workload</th>
-                                <th className="text-center" style={{ fontSize: '18px' }}>Rating</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {mechanics.map((mechanic: any, index: number) => {
-                                const jobs = Number(mechanic.jobs_completed) || 0;
-                                const pct = totalJobs > 0 ? Math.round((jobs / totalJobs) * 100) : 0;
-                                const rating = jobs > 20 ? { label: 'Excellent', bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' }
-                                    : jobs > 10 ? { label: 'Good', bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' }
-                                        : { label: 'Average', bg: '#f8fafc', color: '#64748b', border: '#e2e8f0' };
-                                return (
-                                    <tr key={mechanic.id}>
-                                        <td style={{ padding: '18px 24px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{ position: 'relative' }}>
-                                                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(217, 119, 6, 0.05)', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                        <span style={{ fontSize: '16px', fontWeight: 900, color: '#d97706' }}>
-                                                            {mechanic.name.charAt(0).toUpperCase()}
-                                                        </span>
+                    <div className="table-responsive">
+                        <table className="data-table w-full">
+                            <thead>
+                                <tr>
+                                    <th className="text-left" style={{ fontSize: '15px' }}>Mechanic</th>
+                                    <th className="text-center" style={{ fontSize: '15px' }}>Jobs Completed</th>
+                                    <th className="text-center" style={{ fontSize: '15px' }}>Avg Days/Job</th>
+                                    <th className="text-center" style={{ fontSize: '15px' }}>Workload</th>
+                                    <th className="text-center" style={{ fontSize: '15px' }}>Rating</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {mechanics.map((mechanic: any, index: number) => {
+                                    const jobs = Number(mechanic.jobs_completed) || 0;
+                                    const pct = totalJobs > 0 ? Math.round((jobs / totalJobs) * 100) : 0;
+                                    const rating = jobs > 20 ? { label: 'Excellent', bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' }
+                                        : jobs > 10 ? { label: 'Good', bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' }
+                                            : { label: 'Average', bg: '#f8fafc', color: '#64748b', border: '#e2e8f0' };
+                                    return (
+                                        <tr key={mechanic.id}>
+                                            <td style={{ padding: '18px 24px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <div style={{ position: 'relative' }}>
+                                                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(217, 119, 6, 0.05)', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                            <span style={{ fontSize: '16px', fontWeight: 900, color: '#d97706' }}>
+                                                                {mechanic.name.charAt(0).toUpperCase()}
+                                                            </span>
+                                                        </div>
+                                                        {index === 0 && (
+                                                            <div style={{ position: 'absolute', top: -6, right: -6, fontSize: '14px' }}>🏆</div>
+                                                        )}
                                                     </div>
-                                                    {index === 0 && (
-                                                        <div style={{ position: 'absolute', top: -6, right: -6, fontSize: '14px' }}>🏆</div>
-                                                    )}
+                                                    <div>
+                                                        <div style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '14px' }}>{mechanic.name}</div>
+                                                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Mechanic</div>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <div style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '15px' }}>{mechanic.name}</div>
-                                                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Mechanic</div>
+                                            </td>
+                                            <td style={{ padding: '18px 24px', textAlign: 'center' }}>
+                                                <span style={{ fontSize: '16px', fontWeight: 900, color: 'var(--text-main)' }}>{jobs}</span>
+                                            </td>
+                                            <td style={{ padding: '18px 24px', textAlign: 'center' }}>
+                                                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                                    {mechanic.avg_days ? `${mechanic.avg_days}d` : '—'}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '18px 24px', textAlign: 'center' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                                                    <div className="hidden sm:block" style={{ width: 80, height: 6, borderRadius: 99, background: 'rgba(51, 65, 85, 0.05)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                                                        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 99, background: '#d97706' }} />
+                                                    </div>
+                                                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-muted)', minWidth: '30px' }}>{pct}%</span>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '18px 24px', textAlign: 'center' }}>
-                                            <span style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-main)' }}>{jobs}</span>
-                                        </td>
-                                        <td style={{ padding: '18px 24px', textAlign: 'center' }}>
-                                            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-muted)' }}>
-                                                {mechanic.avg_days ? `${mechanic.avg_days}d` : '—'}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '18px 24px', textAlign: 'center' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                                                <div style={{ width: 80, height: 6, borderRadius: 99, background: 'rgba(51, 65, 85, 0.05)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                                                    <div style={{ width: `${pct}%`, height: '100%', borderRadius: 99, background: '#d97706' }} />
-                                                </div>
-                                                <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-muted)', minWidth: '30px' }}>{pct}%</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '18px 24px', textAlign: 'center' }}>
-                                            <span style={{ display: 'inline-block', padding: '5px 14px', borderRadius: '8px', background: 'rgba(51, 65, 85, 0.05)', color: rating.color, border: `1.5px solid var(--border)`, fontSize: '11px', fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>
-                                                {rating.label}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                            </td>
+                                            <td style={{ padding: '18px 24px', textAlign: 'center' }}>
+                                                <span style={{ display: 'inline-block', padding: '5px 14px', borderRadius: '8px', background: 'rgba(51, 65, 85, 0.05)', color: rating.color, border: `1.5px solid var(--border)`, fontSize: '10px', fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>
+                                                    {rating.label}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

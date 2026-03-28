@@ -86,7 +86,7 @@ export default async function ReportsPage() {
     return (
         <div className="dashboard-container">
             {/* ── Page Header ── */}
-            <div className="page-header mb-8">
+            <div className={`page-header mb-8 ${styles.headerGroup}`}>
                 <div>
                     <nav className="breadcrumbs">
                         <span className="breadcrumb-item active">Reports</span>
@@ -116,21 +116,15 @@ export default async function ReportsPage() {
             </div>
 
             {/* ── Report Cards Grid ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
+            <div className={styles.reportsGrid}>
                 {reports.map((report) => (
                     <Link
                         key={report.href}
                         href={report.href}
+                        className={styles.reportCard}
                         style={{ textDecoration: 'none' }}
                     >
-                        <div
-                            className={`card ${styles.reportCard}`}
-                            style={{
-                                padding: '28px',
-                                borderRadius: '20px',
-                                height: '100%',
-                            }}
-                        >
+                        <div style={{ padding: '28px' }}>
                             {/* Card header */}
                             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>

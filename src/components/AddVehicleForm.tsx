@@ -18,6 +18,13 @@ export default function AddVehicleForm({ customerId, carLibrary = [] }: { custom
     const [selectedModel, setSelectedModel] = useState('');
     const modalRef = useRef<HTMLDivElement>(null);
 
+    function handleClose() {
+        setIsOpen(false);
+        setError('');
+        setSelectedBrand('');
+        setSelectedModel('');
+    }
+
     useEffect(() => {
         if (!isOpen) return;
         function handleOutsideClick(e: MouseEvent) {
@@ -40,13 +47,6 @@ export default function AddVehicleForm({ customerId, carLibrary = [] }: { custom
             .map(item => item.model)
             .sort();
     }, [selectedBrand, carLibrary]);
-
-    function handleClose() {
-        setIsOpen(false);
-        setError('');
-        setSelectedBrand('');
-        setSelectedModel('');
-    }
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -103,94 +103,96 @@ export default function AddVehicleForm({ customerId, carLibrary = [] }: { custom
                 </div>
 
                 <form onSubmit={handleSubmit}>
-                    <div className="modal-body space-y-4">
-                        {error && <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs font-medium flex items-center gap-2"><X size={14} />{error}</div>}
+                    <div className="modal-body">
+                        {error && <div className="p-3 mb-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs font-medium flex items-center gap-2"><X size={14} />{error}</div>}
 
-                        <div className="form-field">
-                            <label>Vehicle Number *</label>
-                            <div className="input-wrapper">
-                                <Hash size={16} />
-                                <input
-                                    type="text"
-                                    name="vehicleNumber"
-                                    placeholder="e.g. MH 12 AB 1234"
-                                    required
-                                    className="font-mono uppercase font-black"
-                                    onChange={(e) => { e.target.value = e.target.value.toUpperCase(); }}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="form-field">
-                            <label>VIN Number</label>
-                            <div className="input-wrapper">
-                                <Hash size={16} />
-                                <input
-                                    type="text"
-                                    name="vin"
-                                    placeholder="17 Digit VIN"
-                                    className="font-mono text-[13px]"
-                                    maxLength={17}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="form-field">
-                            <label>Brand *</label>
-                            <div className="input-wrapper relative">
-                                <Tag size={16} />
-                                <select
-                                    value={selectedBrand}
-                                    onChange={(e) => { setSelectedBrand(e.target.value); setSelectedModel(''); }}
-                                    required
-                                    className="appearance-none flex-1 pr-8 outline-none"
-                                >
-                                    <option value="">Select Brand</option>
-                                    {brands.map(b => (
-                                        <option key={b} value={b}>{b}</option>
-                                    ))}
-                                    <option value="Other">Custom Brand</option>
-                                </select>
-                                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                            </div>
-                        </div>
-
-                        <div className="form-field">
-                            <label>Model *</label>
-                            <div className="input-wrapper relative">
-                                <Car size={16} />
-                                {selectedBrand === 'Other' ? (
+                        <div className="form-grid">
+                            <div className="form-field col-span-2 md:col-span-1">
+                                <label>Vehicle Number *</label>
+                                <div className="input-wrapper">
+                                    <Hash size={16} />
                                     <input
                                         type="text"
-                                        name="model"
-                                        placeholder="Type Model Name"
+                                        name="vehicleNumber"
+                                        placeholder="MH 12 AB 1234"
                                         required
+                                        className="font-mono uppercase font-black"
+                                        onChange={(e) => { e.target.value = e.target.value.toUpperCase(); }}
                                     />
-                                ) : (
-                                    <>
-                                        <select
-                                            value={selectedModel}
-                                            onChange={(e) => setSelectedModel(e.target.value)}
-                                            disabled={!selectedBrand}
-                                            required
-                                            className="appearance-none flex-1 pr-8 outline-none disabled:opacity-50"
-                                        >
-                                            <option value="">{selectedBrand ? 'Select Model' : 'Choose Brand First'}</option>
-                                            {availableModels.map(m => (
-                                                <option key={m} value={m}>{m}</option>
-                                            ))}
-                                        </select>
-                                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                                    </>
-                                )}
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="form-field">
-                            <label>Current KM Reading</label>
-                            <div className="input-wrapper">
-                                <Clock size={16} />
-                                <input type="number" name="lastKm" placeholder="e.g. 45000" />
+                            <div className="form-field col-span-2 md:col-span-1">
+                                <label>Current KM *</label>
+                                <div className="input-wrapper">
+                                    <Clock size={16} />
+                                    <input type="number" name="lastKm" placeholder="e.g. 45000" required />
+                                </div>
+                            </div>
+
+                            <div className="form-field col-span-2">
+                                <label>VIN Number (Optional)</label>
+                                <div className="input-wrapper">
+                                    <Hash size={16} />
+                                    <input
+                                        type="text"
+                                        name="vin"
+                                        placeholder="17 Digit VIN"
+                                        className="font-mono text-[13px]"
+                                        maxLength={17}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-field col-span-2 md:col-span-1">
+                                <label>Brand *</label>
+                                <div className="input-wrapper relative">
+                                    <Tag size={16} />
+                                    <select
+                                        value={selectedBrand}
+                                        onChange={(e) => { setSelectedBrand(e.target.value); setSelectedModel(''); }}
+                                        required
+                                        className="appearance-none flex-1 pr-8 outline-none"
+                                    >
+                                        <option value="">Select Brand</option>
+                                        {brands.map(b => (
+                                            <option key={b} value={b}>{b}</option>
+                                        ))}
+                                        <option value="Other">Custom Brand</option>
+                                    </select>
+                                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                </div>
+                            </div>
+
+                            <div className="form-field col-span-2 md:col-span-1">
+                                <label>Model *</label>
+                                <div className="input-wrapper relative">
+                                    <Car size={16} />
+                                    {selectedBrand === 'Other' ? (
+                                        <input
+                                            type="text"
+                                            name="model"
+                                            placeholder="Type Model Name"
+                                            required
+                                        />
+                                    ) : (
+                                        <>
+                                            <select
+                                                value={selectedModel}
+                                                onChange={(e) => setSelectedModel(e.target.value)}
+                                                disabled={!selectedBrand}
+                                                required
+                                                className="appearance-none flex-1 pr-8 outline-none disabled:opacity-50"
+                                            >
+                                                <option value="">{selectedBrand ? 'Select Model' : 'Choose Brand'}</option>
+                                                {availableModels.map(m => (
+                                                    <option key={m} value={m}>{m}</option>
+                                                ))}
+                                            </select>
+                                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>

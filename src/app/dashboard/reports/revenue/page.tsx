@@ -50,9 +50,9 @@ export default async function RevenueReportPage() {
             </div>
 
             {/* ── KPI Cards ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '20px', marginBottom: '28px' }}>
+            <div className="stats-grid">
                 {/* Total Revenue */}
-                <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                <div className="stats-card">
                     <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(22, 163, 74, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
                         <IndianRupee size={24} color="#16a34a" />
                     </div>
@@ -63,7 +63,7 @@ export default async function RevenueReportPage() {
                 </div>
 
                 {/* Total Invoices */}
-                <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                <div className="stats-card">
                     <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(37, 99, 235, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
                         <TrendingUp size={24} color="#2563eb" />
                     </div>
@@ -74,7 +74,7 @@ export default async function RevenueReportPage() {
                 </div>
 
                 {/* Avg per Invoice */}
-                <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                <div className="stats-card">
                     <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(124, 58, 237, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
                         <DollarSign size={24} color="#7c3aed" />
                     </div>
@@ -105,50 +105,52 @@ export default async function RevenueReportPage() {
                         <p style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: '15px' }}>No revenue data for this month</p>
                     </div>
                 ) : (
-                    <table className="data-table w-full">
-                        <thead>
-                            <tr style={{ background: 'transparent', borderBottom: '1px solid var(--border)' }}>
-                                <th className="text-left" style={{ padding: '16px 24px', fontSize: '18px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</th>
-                                <th className="text-center" style={{ padding: '16px 24px', fontSize: '18px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Invoices</th>
-                                <th className="text-right" style={{ padding: '16px 24px', fontSize: '18px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Revenue</th>
-                                <th className="text-right" style={{ padding: '16px 28px 16px 24px', fontSize: '18px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Share</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {dailyBreakdown.map((day: any, index: number) => {
-                                const totalRevForPct = totalRev > 0 ? totalRev : 1;
-                                const dayTotal = Number(day.daily_total ?? 0);
-                                const pct = Math.round((dayTotal / totalRevForPct) * 100);
-                                return (
-                                    <tr key={index} style={{ borderBottom: index === dailyBreakdown.length - 1 ? 'none' : '1px solid var(--border)' }}>
-                                        <td style={{ padding: '18px 24px' }}>
-                                            <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '15px' }}>
-                                                {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '18px 24px', textAlign: 'center' }}>
-                                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: '8px', background: 'rgba(51, 65, 85, 0.05)', color: 'var(--text-main)', fontWeight: 800, fontSize: '14px', border: '1px solid var(--border)' }}>
-                                                {day.invoice_count}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '18px 24px', textAlign: 'right' }}>
-                                            <span style={{ fontSize: '18px', fontWeight: 900, color: '#16a34a' }}>
-                                                ₹{dayTotal.toLocaleString()}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '18px 24px', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px' }}>
-                                                <div style={{ width: 80, height: 8, borderRadius: 99, background: 'var(--bg-main)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                                                    <div style={{ width: `${pct}%`, height: '100%', borderRadius: 99, background: '#16a34a' }} />
+                    <div className="table-responsive">
+                        <table className="data-table w-full">
+                            <thead>
+                                <tr style={{ background: 'transparent', borderBottom: '1px solid var(--border)' }}>
+                                    <th className="text-left" style={{ padding: '16px 24px', fontSize: '15px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</th>
+                                    <th className="text-center" style={{ padding: '16px 24px', fontSize: '15px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Invoices</th>
+                                    <th className="text-right" style={{ padding: '16px 24px', fontSize: '15px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Revenue</th>
+                                    <th className="text-right" style={{ padding: '16px 28px 16px 24px', fontSize: '15px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Share</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {dailyBreakdown.map((day: any, index: number) => {
+                                    const totalRevForPct = totalRev > 0 ? totalRev : 1;
+                                    const dayTotal = Number(day.daily_total ?? 0);
+                                    const pct = Math.round((dayTotal / totalRevForPct) * 100);
+                                    return (
+                                        <tr key={index} style={{ borderBottom: index === dailyBreakdown.length - 1 ? 'none' : '1px solid var(--border)' }}>
+                                            <td style={{ padding: '18px 24px' }}>
+                                                <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '14px' }}>
+                                                    {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '18px 24px', textAlign: 'center' }}>
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: '8px', background: 'rgba(51, 65, 85, 0.05)', color: 'var(--text-main)', fontWeight: 800, fontSize: '14px', border: '1px solid var(--border)' }}>
+                                                    {day.invoice_count}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '18px 24px', textAlign: 'right' }}>
+                                                <span style={{ fontSize: '16px', fontWeight: 900, color: '#16a34a' }}>
+                                                    ₹{dayTotal.toLocaleString()}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '18px 24px', textAlign: 'right' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px' }}>
+                                                    <div className="hidden sm:block" style={{ width: 80, height: 8, borderRadius: 99, background: 'var(--bg-main)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                                                        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 99, background: '#16a34a' }} />
+                                                    </div>
+                                                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-muted)', minWidth: '35px', textAlign: 'right' }}>{pct}%</span>
                                                 </div>
-                                                <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-muted)', minWidth: '35px', textAlign: 'right' }}>{pct}%</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
         </div>

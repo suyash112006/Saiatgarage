@@ -44,8 +44,8 @@ export default async function CustomerRetentionPage() {
             </div>
 
             {/* ── KPI Cards ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '20px', marginBottom: '28px' }}>
-                <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+            <div className="stats-grid">
+                <div className="stats-card">
                     <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(37, 99, 235, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
                         <Users size={24} color="#2563eb" />
                     </div>
@@ -53,7 +53,7 @@ export default async function CustomerRetentionPage() {
                     <p style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', lineHeight: 1 }}>{customers.length}</p>
                 </div>
 
-                <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                <div className="stats-card">
                     <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(22, 163, 74, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
                         <IndianRupee size={24} color="#16a34a" />
                     </div>
@@ -61,7 +61,7 @@ export default async function CustomerRetentionPage() {
                     <p style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', lineHeight: 1 }}>₹{totalSpent.toLocaleString()}</p>
                 </div>
 
-                <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                <div className="stats-card">
                     <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(147, 51, 234, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
                         <TrendingUp size={24} color="#9333ea" />
                     </div>
@@ -89,56 +89,58 @@ export default async function CustomerRetentionPage() {
                             <p style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500 }}>{customers.length} customers with 2+ visits</p>
                         </div>
                     </div>
-                    <table className="data-table w-full">
-                        <thead>
-                            <tr>
-                                <th className="text-left" style={{ fontSize: '18px' }}>#</th>
-                                <th className="text-left" style={{ fontSize: '18px' }}>Customer</th>
-                                <th className="text-center" style={{ fontSize: '18px' }}>Visits</th>
-                                <th className="text-center" style={{ fontSize: '18px' }}>Last Visit</th>
-                                <th className="text-right" style={{ fontSize: '18px' }}>Total Spent</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {customers.map((customer: any, index: number) => (
-                                <tr key={customer.id}>
-                                    <td style={{ padding: '18px 24px', width: 60 }}>
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: '8px', background: index === 0 ? 'rgba(217, 119, 6, 0.1)' : 'rgba(51, 65, 85, 0.05)', color: index === 0 ? '#d97706' : 'var(--text-muted)', fontWeight: 900, fontSize: '13px', border: '1px solid var(--border)' }}>
-                                            {index + 1}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '18px 24px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(37, 99, 235, 0.05)', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                <span style={{ fontSize: '15px', fontWeight: 900, color: '#2563eb' }}>
-                                                    {customer.name.charAt(0).toUpperCase()}
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '15px' }}>{customer.name}</div>
-                                                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{customer.mobile || '—'}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '18px 24px', textAlign: 'center' }}>
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '6px', background: 'rgba(124, 58, 237, 0.1)', color: '#7c3aed', fontWeight: 800, fontSize: '14px' }}>
-                                            {Number(customer.total_visits)}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '18px 24px', textAlign: 'center' }}>
-                                        <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                                            {customer.last_visit ? new Date(customer.last_visit).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '18px 24px', textAlign: 'right' }}>
-                                        <span style={{ fontSize: '18px', fontWeight: 900, color: '#16a34a' }}>
-                                            ₹{Number(customer.total_spent ?? 0).toLocaleString()}
-                                        </span>
-                                    </td>
+                    <div className="table-responsive">
+                        <table className="data-table w-full">
+                            <thead>
+                                <tr>
+                                    <th className="text-left" style={{ fontSize: '15px' }}>#</th>
+                                    <th className="text-left" style={{ fontSize: '15px' }}>Customer</th>
+                                    <th className="text-center" style={{ fontSize: '15px' }}>Visits</th>
+                                    <th className="text-center" style={{ fontSize: '15px' }}>Last Visit</th>
+                                    <th className="text-right" style={{ fontSize: '15px' }}>Total Spent</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {customers.map((customer: any, index: number) => (
+                                    <tr key={customer.id}>
+                                        <td style={{ padding: '18px 24px', width: 60 }}>
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: '8px', background: index === 0 ? 'rgba(217, 119, 6, 0.1)' : 'rgba(51, 65, 85, 0.05)', color: index === 0 ? '#d97706' : 'var(--text-muted)', fontWeight: 900, fontSize: '13px', border: '1px solid var(--border)' }}>
+                                                {index + 1}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '18px 24px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(37, 99, 235, 0.05)', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                    <span style={{ fontSize: '15px', fontWeight: 900, color: '#2563eb' }}>
+                                                        {customer.name.charAt(0).toUpperCase()}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '14px' }}>{customer.name}</div>
+                                                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{customer.mobile || '—'}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td style={{ padding: '18px 24px', textAlign: 'center' }}>
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '6px', background: 'rgba(124, 58, 237, 0.1)', color: '#7c3aed', fontWeight: 800, fontSize: '14px' }}>
+                                                {Number(customer.total_visits)}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '18px 24px', textAlign: 'center' }}>
+                                            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                                {customer.last_visit ? new Date(customer.last_visit).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '18px 24px', textAlign: 'right' }}>
+                                            <span style={{ fontSize: '16px', fontWeight: 900, color: '#16a34a' }}>
+                                                ₹{Number(customer.total_spent ?? 0).toLocaleString()}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

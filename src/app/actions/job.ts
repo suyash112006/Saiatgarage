@@ -320,6 +320,66 @@ export async function addJobService(formData: FormData) {
     }
 }
 
+export async function addJobServices(jobId: number, services: { id: number, quantity: number }[]) {
+    const session = await getSession();
+    if (!session) return { error: 'Unauthorized' };
+
+    if (!jobId || !services || !Array.isArray(services) || services.length === 0) {
+        return { error: 'Invalid data' };
+    }
+
+    try {
+        console.log(`[ACTION] addJobServices started for Job:${jobId}, Services Count:${services.length}`);
+
+        // Process each service
+        for (const item of services) {
+            const { id: serviceId, quantity } = item;
+            const checkRes = await db.query(`
+                SELECT s.name, s.base_price, jcs.id as existing_id
+                FROM services s
+                LEFT JOIN job_card_services jcs ON jcs.job_id = $1 AND jcs.service_id = $2
+                WHERE s.id = $2
+            `, [jobId, serviceId]);
+
+            if (checkRes.rowCount === 0) continue;
+            
+            const { name: serviceName, base_price: price, existing_id: existingId } = checkRes.rows[0];
+
+            if (existingId) {
+                await db.query('UPDATE job_card_services SET quantity = quantity + $1, price = $2 WHERE id = $3', [quantity, price, existingId]);
+            } else {
+                await db.query(`
+                    INSERT INTO job_card_services (job_id, service_id, service_name, price, quantity)
+                    VALUES ($1, $2, $3, $4, $5)
+                `, [jobId, serviceId, serviceName, price, quantity]);
+            }
+        }
+
+        console.log(`[ACTION] Updating job totals...`);
+        await updateJobTotals(jobId);
+
+        if (session.role === 'mechanic') {
+            const jobRes = await db.query('SELECT job_no FROM job_cards WHERE id = $1', [jobId]);
+            const jobNo = jobRes.rows[0]?.job_no || jobId;
+
+            await createNotification(
+                `${services.length} services added to Job card #${jobNo} by ${session.name}`,
+                'JOB',
+                jobId,
+                undefined,
+                'admin'
+            );
+        }
+
+        console.log(`[ACTION] addJobServices completed successfully`);
+        revalidatePath(`/dashboard/jobs/${jobId}`);
+        return { success: true };
+    } catch (err: any) {
+        console.error('❌ addJobServices Failed:', err);
+        return { error: `Failed to add services: ${err.message}` };
+    }
+}
+
 export async function removeJobService(jobId: number, itemId: number) {
     const session = await getSession();
     if (!session) return { error: 'Unauthorized' };
@@ -399,6 +459,75 @@ export async function addJobPart(formData: FormData) {
     } catch (err: any) {
         console.error('❌ addJobPart Failed:', err);
         return { error: `Failed to add part: ${err.message}` };
+    }
+}
+
+export async function addJobParts(jobId: number, parts: { id: number, quantity: number }[]) {
+    const session = await getSession();
+    if (!session) return { error: 'Unauthorized' };
+
+    if (!jobId || !parts || !Array.isArray(parts) || parts.length === 0) {
+        return { error: 'Invalid data' };
+    }
+
+    try {
+        console.log(`[ACTION] addJobParts started for Job:${jobId}, Parts Count:${parts.length}`);
+
+        for (const item of parts) {
+            const { id: partId, quantity } = item;
+            const checkRes = await db.query(`
+                SELECT p.name, p.part_no, p.unit_price, p.stock_quantity, jcp.id as existing_id
+                FROM parts p
+                LEFT JOIN job_card_parts jcp ON jcp.job_id = $1 AND jcp.part_id = $2
+                WHERE p.id = $2
+            `, [jobId, partId]);
+
+            if (checkRes.rowCount === 0) continue;
+            
+            const { name: partName, part_no: partNo, unit_price: price, stock_quantity: stock, existing_id: existingId } = checkRes.rows[0];
+
+            if (stock < quantity) {
+                console.warn(`[ACTION] Part ${partName} out of stock or insufficient. Skipping.`);
+                continue;
+            }
+
+            if (existingId) {
+                console.log(`[ACTION] Updating existing part entry: ${existingId}`);
+                await db.query('UPDATE job_card_parts SET quantity = quantity + $1, price = $2 WHERE id = $3', [quantity, price, existingId]);
+            } else {
+                console.log(`[ACTION] Inserting new part entry`);
+                await db.query(`
+                    INSERT INTO job_card_parts (job_id, part_id, part_name, part_no, price, quantity)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                `, [jobId, partId, partName, partNo, price, quantity]);
+            }
+
+            // Deduct stock
+            await db.query('UPDATE parts SET stock_quantity = stock_quantity - $1 WHERE id = $2', [quantity, partId]);
+        }
+
+        console.log(`[ACTION] Updating job totals...`);
+        await updateJobTotals(jobId);
+
+        if (session.role === 'mechanic') {
+            const jobRes = await db.query('SELECT job_no FROM job_cards WHERE id = $1', [jobId]);
+            const jobNo = jobRes.rows[0]?.job_no || jobId;
+
+            await createNotification(
+                `${parts.length} parts added to Job card #${jobNo} by ${session.name}`,
+                'JOB',
+                jobId,
+                undefined,
+                'admin'
+            );
+        }
+
+        console.log(`[ACTION] addJobParts completed successfully`);
+        revalidatePath(`/dashboard/jobs/${jobId}`);
+        return { success: true };
+    } catch (err: any) {
+        console.error('❌ addJobParts Failed:', err);
+        return { error: `Failed to add parts: ${err.message}` };
     }
 }
 

@@ -31,7 +31,6 @@ export default function KPICard({
 
     // 🔢 Count-up animation
     useEffect(() => {
-        let start = 0;
         const duration = 1000; // 1 second
         const startTime = performance.now();
 

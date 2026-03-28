@@ -50,18 +50,9 @@ export default async function ReportsSummary() {
     ];
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '32px' }}>
+        <div className="stats-grid">
             {kpis.map((kpi) => (
-                <div
-                    key={kpi.label}
-                    style={{
-                        background: 'var(--bg-card)',
-                        border: `1.5px solid var(--border)`,
-                        borderRadius: '20px',
-                        padding: '24px',
-                        boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-                    }}
-                >
+                <div key={kpi.label} className="stats-card">
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' }}>
                         <div
                             style={{

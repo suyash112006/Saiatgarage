@@ -32,21 +32,46 @@ export async function getUnreadNotifications() {
     if (!session) return [];
 
     try {
-        // Fetch notifications that are either:
-        // 1. Global (no recipient_id AND no recipient_role)
-        // 2. Targeted to this specific user (recipient_id matches)
-        // 3. Targeted to this user's role (recipient_role matches)
-        const res = await db.query(`
-            SELECT * FROM notifications 
-            WHERE is_read = 0 
-            AND (
-                (recipient_id IS NULL AND recipient_role IS NULL) 
-                OR (recipient_id = $1)
-                OR (recipient_role = $2)
-            )
-            ORDER BY created_at DESC 
-            LIMIT 20
-        `, [session.id, session.role]);
+        let sql = '';
+        let params: any[] = [];
+
+        if (session.role === 'admin') {
+            // Admin only sees notifications explicitly flagged for them (e.g. from mechanics)
+            sql = `
+                SELECT * FROM notifications 
+                WHERE is_read = 0 
+                AND recipient_role = 'admin'
+                ORDER BY created_at DESC 
+                LIMIT 20
+            `;
+            params = [];
+        } else if (session.role === 'mechanic') {
+            // Mechanic exclusively sees direct assignments
+            sql = `
+                SELECT * FROM notifications 
+                WHERE is_read = 0 
+                AND recipient_id = $1
+                ORDER BY created_at DESC 
+                LIMIT 20
+            `;
+            params = [session.id];
+        } else {
+            // Other roles see global alerts + personal alerts
+            sql = `
+                SELECT * FROM notifications 
+                WHERE is_read = 0 
+                AND (
+                    (recipient_id IS NULL AND recipient_role IS NULL) 
+                    OR (recipient_id = $1)
+                    OR (recipient_role = $2)
+                )
+                ORDER BY created_at DESC 
+                LIMIT 20
+            `;
+            params = [session.id, session.role];
+        }
+
+        const res = await db.query(sql, params);
         return res.rows;
     } catch (err) {
         console.error('Error fetching notifications:', err);
@@ -65,8 +90,25 @@ export async function markNotificationRead(id: number) {
 }
 
 export async function markAllNotificationsRead() {
+    const session = await getSession();
+    if (!session) return { error: 'Unauthorized' };
+
     try {
-        await db.query('UPDATE notifications SET is_read = 1 WHERE is_read = 0');
+        if (session.role === 'admin') {
+            await db.query("UPDATE notifications SET is_read = 1 WHERE is_read = 0 AND recipient_role = 'admin'");
+        } else if (session.role === 'mechanic') {
+            await db.query("UPDATE notifications SET is_read = 1 WHERE is_read = 0 AND recipient_id = $1", [session.id]);
+        } else {
+            await db.query(`
+                UPDATE notifications SET is_read = 1 
+                WHERE is_read = 0 
+                AND (
+                    (recipient_id IS NULL AND recipient_role IS NULL) 
+                    OR (recipient_id = $1)
+                    OR (recipient_role = $2)
+                )
+            `, [session.id, session.role]);
+        }
         revalidatePath('/dashboard');
         return { success: true };
     } catch (err) {

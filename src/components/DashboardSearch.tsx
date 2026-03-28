@@ -29,11 +29,15 @@ export default function DashboardSearch({ initialActivity }: { initialActivity: 
 
     useEffect(() => {
         if (debouncedQuery.length >= 2) {
+            let cancelled = false;
             setIsSearching(true);
             searchGeneral(debouncedQuery).then((data) => {
-                setResults(data);
-                setIsSearching(false);
+                if (!cancelled) {
+                    setResults(data);
+                    setIsSearching(false);
+                }
             });
+            return () => { cancelled = true; };
         } else {
             setResults([]);
         }
@@ -151,7 +155,7 @@ export default function DashboardSearch({ initialActivity }: { initialActivity: 
                                 <div>
                                     <h3 className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--text-main)' }}>
                                         Customer Not Found
-                                        <span className="text-xs font-normal text-muted">No profile exists for "<span className="font-bold" style={{ color: 'var(--text-main)' }}>{query}</span>"</span>
+                                        <span className="text-xs font-normal text-muted">No profile exists for &quot;<span className="font-bold" style={{ color: 'var(--text-main)' }}>{query}</span>&quot;</span>
                                     </h3>
                                 </div>
                             </div>
@@ -179,38 +183,40 @@ export default function DashboardSearch({ initialActivity }: { initialActivity: 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="w-full"
+                            className="w-full table-responsive"
                             style={{ background: 'var(--bg-card)' }}
                         >
-                            {/* Header */}
-                            <div className="search-results-header">
-                                <div className="search-header-cell">Name / Vehicle</div>
-                                <div className="search-header-cell">Mobile Contact</div>
-                                <div className="search-header-cell">Location</div>
-                            </div>
+                            <table className="data-table w-full">
+                                <thead>
+                                    <tr>
+                                        <th style={{ paddingLeft: '24px' }}>Name / Vehicle</th>
+                                        <th>Mobile Contact</th>
+                                        <th>Location</th>
+                                        <th className="w-10"></th>
+                                    </tr>
+                                </thead>
+                                <motion.tbody
+                                    initial="hidden"
+                                    animate="visible"
+                                    variants={{
+                                        visible: { transition: { staggerChildren: 0.05 } }
+                                    }}
+                                >
+                                    {displayItems.map((item, idx) => {
+                                        const rowItem = item.customer_name ? {
+                                            type: 'job',
+                                            id: item.id,
+                                            name: item.customer_name,
+                                            customer_name: item.customer_name,
+                                            mobile: item.mobile,
+                                            address: item.address,
+                                            vehicle_number: item.vehicle_number
+                                        } : item;
 
-                            {/* Body */}
-                            <motion.div
-                                initial="hidden"
-                                animate="visible"
-                                variants={{
-                                    visible: { transition: { staggerChildren: 0.05 } }
-                                }}
-                            >
-                                {displayItems.map((item, idx) => {
-                                    const rowItem = item.customer_name ? {
-                                        type: 'job',
-                                        id: item.id,
-                                        name: item.customer_name,
-                                        customer_name: item.customer_name,
-                                        mobile: item.mobile,
-                                        address: item.address,
-                                        vehicle_number: item.vehicle_number
-                                    } : item;
-
-                                    return <SearchResultRow key={idx} item={rowItem} isLast={idx === displayItems.length - 1} />;
-                                })}
-                            </motion.div>
+                                        return <SearchResultRow key={idx} item={rowItem} isLast={idx === displayItems.length - 1} />;
+                                    })}
+                                </motion.tbody>
+                            </table>
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -246,31 +252,43 @@ function SearchResultRow({ item, isLast }: { item: any, isLast: boolean }) {
     const initial = (name || '?').charAt(0).toUpperCase();
 
     return (
-        <div
-            className="search-result-row clickable-row group"
+        <motion.tr
+            variants={{
+                hidden: { opacity: 0, x: -10 },
+                visible: { opacity: 1, x: 0 }
+            }}
+            className="clickable-row group"
             onClick={() => window.location.href = href}
+            style={{ borderBottom: isLast ? 'none' : '1px solid var(--border)' }}
         >
-            {/* Name Column: Avatar + Name */}
-            <div className="search-cell name-cell-wrap">
-                <div className="search-avatar">
-                    {initial}
+            <td style={{ paddingLeft: '24px' }}>
+                <div className="name-cell">
+                    <div className="avatar">
+                        {initial}
+                    </div>
+                    <span className="name-text">
+                        {name}
+                    </span>
                 </div>
-                <div className="search-name-text">
-                    {name}
-                </div>
-            </div>
+            </td>
 
-            {/* Mobile Column: Icon + Mobile */}
-            <div className="search-cell mobile-cell-wrap">
-                <Phone size={16} className="search-cell-icon" />
-                <span className="search-cell-text">{mobile}</span>
-            </div>
+            <td>
+                <span className="cell-icon text-sm">
+                    <Phone size={14} />
+                    {mobile}
+                </span>
+            </td>
 
-            {/* Address Column: Icon + Address */}
-            <div className="search-cell address-cell-wrap">
-                <MapPin size={16} className="search-cell-icon" />
-                <span className="search-cell-text">{address}</span>
-            </div>
-        </div>
+            <td>
+                <span className="cell-icon muted text-sm">
+                    <MapPin size={14} />
+                    {address}
+                </span>
+            </td>
+
+            <td className="text-right pr-6">
+                <ChevronRight size={18} className="text-muted opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0" />
+            </td>
+        </motion.tr>
     );
 }

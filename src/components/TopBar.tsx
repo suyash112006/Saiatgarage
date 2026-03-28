@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Bell, Moon, Sun, Check, X, Clock, FileText, User, Car, ChevronRight } from 'lucide-react';
+import { Search, Bell, Moon, Sun, Check, X, Clock, FileText, User, Car, ChevronRight, Menu } from 'lucide-react';
 import { updateUserTheme } from '@/app/actions/user';
 import { getUnreadNotifications, markNotificationRead, markAllNotificationsRead } from '@/app/actions/notification';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,6 +19,11 @@ export default function TopBar({ user }: { user: any }) {
   const [mounted, setMounted] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const fetchNotifications = async () => {
+    const data = await getUnreadNotifications();
+    setNotifications(data);
+  };
 
   // Load persistence and handle initial set
   useEffect(() => {
@@ -65,11 +70,6 @@ export default function TopBar({ user }: { user: any }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showNotifications]);
 
-  const fetchNotifications = async () => {
-    const data = await getUnreadNotifications();
-    setNotifications(data);
-  };
-
   const toggleTheme = async () => {
     const nextTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(nextTheme);
@@ -91,7 +91,13 @@ export default function TopBar({ user }: { user: any }) {
   return (
     <header className="topbar" style={{ backgroundColor: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border)' }}>
       <div className="topbar-left flex items-center">
-        <BackButton />
+        <button
+          className="mobile-menu-btn md:hidden p-2 mr-2 rounded-lg transition-colors border-none bg-transparent"
+          onClick={() => document.body.classList.toggle('mobile-nav-open')}
+          aria-label="Toggle Menu"
+        >
+          <Menu size={24} color="var(--text-main)" />
+        </button>
         <div className="hidden md:block ml-4">
           <h2 className="text-lg font-bold" style={{ color: 'var(--text-main)' }}>
           </h2>
@@ -99,6 +105,7 @@ export default function TopBar({ user }: { user: any }) {
       </div>
 
       <div className="topbar-right">
+        <BackButton />
         <button className="icon-btn" onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`} style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
           {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
         </button>

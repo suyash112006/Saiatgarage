@@ -54,11 +54,16 @@ const initPostgres = () => {
                 rejectUnauthorized: false
             },
             max: 10, // Max number of clients in the pool
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 2000,
+            idleTimeoutMillis: 15000, // Close idle clients after 15 seconds (prune potentially dead ones)
+            connectionTimeoutMillis: 10000, // Give Neon 10 seconds to wake up
         });
 
-        pool.on('error', (err) => console.error('Unexpected pool error:', err));
+        pool.on('error', (err) => {
+            console.error('--- Unexpected Pool Error ---');
+            console.error('Error Code:', (err as any).code);
+            console.error('Message:', err.message);
+            console.error('-----------------------------');
+        });
 
         // Log when a new client connects
         pool.on('connect', () => {
@@ -98,73 +103,82 @@ const initSqlite = () => {
 export const query = async (text: string, params?: any[]) => {
     const provider = getDbProvider();
     const start = Date.now();
+    let lastError: any = null;
 
-    try {
-        if (provider === 'postgres') {
-            const p = initPostgres();
-            const res = await p.query(text, params);
-            const duration = Date.now() - start;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+            if (provider === 'postgres') {
+                const p = initPostgres();
+                const res = await p.query(text, params);
+                const duration = Date.now() - start;
 
-            // Log slow queries (> 200ms)
-            if (duration > 200) {
-                console.log(`[DB-SLOW] ${provider} query executed in ${duration}ms: ${text.substring(0, 100)}...`);
-            } else if (process.env.NODE_ENV === 'development') {
-                // In dev, log all to see activity
-                // console.log(`[DB] ${provider} query executed in ${duration}ms`);
-            }
-
-            return res;
-        } else {
-            const db = initSqlite();
-
-            const placeholders = text.match(/\$\d+/g) || [];
-            const sqliteParams = placeholders.map(ph => {
-                const index = parseInt(ph.substring(1)) - 1;
-                return params ? params[index] : undefined;
-            });
-            const sqliteQuery = text.replace(/\$\d+/g, '?');
-
-            const isInsert = text.trim().toUpperCase().startsWith('INSERT INTO');
-            const hasReturning = text.toUpperCase().includes('RETURNING ID');
-
-            let rows = [];
-            let rowCount = 0;
-
-            if (isInsert && hasReturning) {
-                const queryWithoutReturning = text.replace(/RETURNING\s+id/i, '').trim();
-                const stmt = db.prepare(queryWithoutReturning.replace(/\$\d+/g, '?'));
-                const result = stmt.run(...sqliteParams);
-                rows = [{ id: result.lastInsertRowid }];
-                rowCount = 1;
-            } else {
-                const stmt = db.prepare(sqliteQuery);
-                if (text.trim().toUpperCase().startsWith('SELECT')) {
-                    rows = stmt.all(...sqliteParams);
-                    rowCount = rows.length;
-                } else {
-                    const result = stmt.run(...sqliteParams);
-                    rowCount = result.changes;
+                // Log slow queries (> 200ms)
+                if (duration > 200) {
+                    console.log(`[DB-SLOW] ${provider} query executed in ${duration}ms (attempt ${attempt}): ${text.substring(0, 100)}...`);
                 }
+
+                return res;
+            } else {
+                // SQLite path (no retry needed usually)
+                const db = initSqlite();
+
+                const placeholders = text.match(/\$\d+/g) || [];
+                const sqliteParams = placeholders.map(ph => {
+                    const index = parseInt(ph.substring(1)) - 1;
+                    return params ? params[index] : undefined;
+                });
+                const sqliteQuery = text.replace(/\$\d+/g, '?');
+
+                const isInsert = text.trim().toUpperCase().startsWith('INSERT INTO');
+                const hasReturning = text.toUpperCase().includes('RETURNING ID');
+
+                let rows = [];
+                let rowCount = 0;
+
+                if (isInsert && hasReturning) {
+                    const queryWithoutReturning = text.replace(/RETURNING\s+id/i, '').trim();
+                    const stmt = db.prepare(queryWithoutReturning.replace(/\$\d+/g, '?'));
+                    const result = stmt.run(...sqliteParams);
+                    rows = [{ id: result.lastInsertRowid }];
+                    rowCount = 1;
+                } else {
+                    const stmt = db.prepare(sqliteQuery);
+                    if (text.trim().toUpperCase().startsWith('SELECT')) {
+                        rows = stmt.all(...sqliteParams);
+                        rowCount = rows.length;
+                    } else {
+                        const result = stmt.run(...sqliteParams);
+                        rowCount = result.changes;
+                    }
+                }
+
+                const duration = Date.now() - start;
+                if (duration > 200) {
+                    console.log(`[DB-SLOW] ${provider} query executed in ${duration}ms: ${text.substring(0, 100)}...`);
+                }
+
+                return { rows, rowCount };
+            }
+        } catch (error: any) {
+            lastError = error;
+            const isTransient = 
+                error.message?.includes('Connection terminated') || 
+                error.message?.includes('timeout exceeded') ||
+                error.message?.includes('ECONNRESET');
+
+            if (provider === 'postgres' && isTransient && attempt < 3) {
+                console.warn(`⚠️ Database attempt ${attempt} failed (${error.message}). Retrying in ${attempt * 500}ms...`);
+                await new Promise(resolve => setTimeout(resolve, attempt * 500));
+                continue;
             }
 
-            const duration = Date.now() - start;
-            if (duration > 200) {
-                console.log(`[DB-SLOW] ${provider} query executed in ${duration}ms: ${text.substring(0, 100)}...`);
-            }
-
-            return { rows, rowCount };
+            const isDnsError = error.message?.includes('ENOTFOUND');
+            console.error(`❌ Database Error (${provider}) on attempt ${attempt}:`, isDnsError ? 'DNS RESOLUTION FAILED' : error.message);
+            console.error(`Query: ${text}`);
+            throw error;
         }
-    } catch (error: any) {
-        const isDnsError = error.message?.includes('ENOTFOUND');
-        console.error(`❌ Database Error (${provider}):`, isDnsError ? 'DNS RESOLUTION FAILED (Host not found)' : error.message);
-        if (isDnsError) {
-            console.error('👉 Suggestion: Check your internet connection or your DATABASE_URL hostname.');
-        }
-        console.error(`Query: ${text}`);
-        console.error(`Params:`, params);
-        console.error(`Duration until failure: ${Date.now() - start}ms`);
-        throw error;
     }
+    throw lastError;
 };
 
 export default {

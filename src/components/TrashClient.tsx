@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Trash2, RotateCcw, X, Users, ClipboardList, AlertTriangle } from 'lucide-react';
+import { Trash2, RotateCcw, X, Users, ClipboardList, AlertTriangle, Phone, MapPin, User, Car } from 'lucide-react';
 import {
     restoreCustomer,
     restoreJob,
@@ -145,51 +145,65 @@ export default function TrashClient({ customers: initialCustomers, jobs: initial
                     customers.length === 0 ? (
                         <EmptyState label="No deleted customers" />
                     ) : (
-                        <div className="card shadow-sm rounded-3xl overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
-                            <table className="data-table w-full">
-                                <thead style={{ background: 'rgba(51, 65, 85, 0.05)', borderBottom: '1px solid var(--border)' }}>
-                                    <tr>
-                                        <th className="py-5 px-6" style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', textAlign: 'left' }}>Customer</th>
-                                        <th className="py-5 px-6" style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', textAlign: 'left' }}>Mobile</th>
-                                        <th className="py-5 px-6" style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', textAlign: 'left' }}>Deleted On</th>
-                                        <th className="py-5 px-6" style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', textAlign: 'left' }}>Purge In</th>
-                                        <th className="py-5 px-6" style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', textAlign: 'center' }}>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody style={{ color: 'var(--text-main)' }}>
-                                    {customers.map(c => (
-                                        <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                                            <td className="py-4 px-6 font-semibold" style={{ fontSize: '14px', color: 'var(--text-main)' }}>{c.name}</td>
-                                            <td className="py-4 px-6" style={{ fontSize: '14px', color: 'var(--text-muted)' }}>{c.mobile || '—'}</td>
-                                            <td className="py-4 px-6 text-slate-400 text-[13px]">
-                                                {new Date(c.deleted_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                            </td>
-                                            <td className="py-4 px-6">
-                                                <PurgeBadge days={daysLeft(c.deleted_at)} />
-                                            </td>
-                                            <td className="py-4 px-6">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <button
-                                                        onClick={() => handleRestoreCustomer(c.id)}
-                                                        className="btn-icon animate-icon"
-                                                        title="Restore"
-                                                        style={{ color: '#16a34a' }}
-                                                    >
-                                                        <RotateCcw size={15} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteCustomer(c.id)}
-                                                        className="btn-icon danger animate-icon"
-                                                        title="Delete Permanently"
-                                                    >
-                                                        <X size={15} />
-                                                    </button>
-                                                </div>
-                                            </td>
+                        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                            <div className="table-responsive">
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th className="pl-6">Customer</th>
+                                            <th>Mobile</th>
+                                            <th>Deleted On</th>
+                                            <th>Purge In</th>
+                                            <th className="text-center pr-6">Actions</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {customers.map(c => {
+                                            const initials = c.name ? c.name.charAt(0).toUpperCase() : '?';
+                                            return (
+                                                <tr key={c.id}>
+                                                    <td className="pl-6">
+                                                        <div className="name-cell">
+                                                            <div className="avatar">{initials}</div>
+                                                            <span className="name-text">{c.name}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span className="cell-icon">
+                                                            <Phone size={14} />
+                                                            {c.mobile || '—'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="text-slate-400 text-[13px] font-medium">
+                                                        {new Date(c.deleted_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                    </td>
+                                                    <td>
+                                                        <PurgeBadge days={daysLeft(c.deleted_at)} />
+                                                    </td>
+                                                    <td className="pr-6">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <button
+                                                                onClick={() => handleRestoreCustomer(c.id)}
+                                                                className="btn-icon success animate-icon"
+                                                                title="Restore"
+                                                            >
+                                                                <RotateCcw size={15} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteCustomer(c.id)}
+                                                                className="btn-icon danger animate-icon"
+                                                                title="Delete Permanently"
+                                                            >
+                                                                <X size={15} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     )
                 )}
@@ -198,62 +212,74 @@ export default function TrashClient({ customers: initialCustomers, jobs: initial
                     jobs.length === 0 ? (
                         <EmptyState label="No deleted job cards" />
                     ) : (
-                        <div className="card shadow-sm rounded-3xl overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
-                            <table className="data-table w-full">
-                                <thead style={{ background: 'rgba(51, 65, 85, 0.05)', borderBottom: '1px solid var(--border)' }}>
-                                    <tr>
-                                        <th className="py-5 px-6" style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', textAlign: 'left' }}>Job #</th>
-                                        <th className="py-5 px-6" style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', textAlign: 'left' }}>Vehicle</th>
-                                        <th className="py-5 px-6" style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', textAlign: 'left' }}>Customer</th>
-                                        <th className="py-5 px-6" style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', textAlign: 'left' }}>Status</th>
-                                        <th className="py-5 px-6" style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', textAlign: 'left' }}>Deleted On</th>
-                                        <th className="py-5 px-6" style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', textAlign: 'left' }}>Purge In</th>
-                                        <th className="py-5 px-6" style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', textAlign: 'center' }}>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody style={{ color: 'var(--text-main)' }}>
-                                    {jobs.map(j => (
-                                        <tr key={j.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                                            <td className="py-4 px-6 font-mono font-bold" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>#{j.job_no || j.id}</td>
-                                            <td className="py-4 px-6">
-                                                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)' }}>{j.model}</div>
-                                                <div style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 500, marginTop: '2px' }}>{j.vehicle_number}</div>
-                                            </td>
-                                            <td className="py-4 px-6" style={{ fontSize: '14px', color: 'var(--text-main)', fontWeight: 500 }}>{j.customer_name || '—'}</td>
-                                            <td className="py-4 px-6">
-                                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 capitalize">
-                                                    {j.status?.toLowerCase().replace('_', ' ')}
-                                                </span>
-                                            </td>
-                                            <td className="py-4 px-6 text-slate-400 text-[13px]">
-                                                {new Date(j.deleted_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                            </td>
-                                            <td className="py-4 px-6">
-                                                <PurgeBadge days={daysLeft(j.deleted_at)} />
-                                            </td>
-                                            <td className="py-4 px-6">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <button
-                                                        onClick={() => handleRestoreJob(j.id)}
-                                                        className="btn-icon animate-icon"
-                                                        title="Restore"
-                                                        style={{ color: '#16a34a' }}
-                                                    >
-                                                        <RotateCcw size={15} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteJob(j.id)}
-                                                        className="btn-icon danger animate-icon"
-                                                        title="Delete Permanently"
-                                                    >
-                                                        <X size={15} />
-                                                    </button>
-                                                </div>
-                                            </td>
+                        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                            <div className="table-responsive">
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th className="pl-6">Job #</th>
+                                            <th>Vehicle</th>
+                                            <th>Customer</th>
+                                            <th>Deleted On</th>
+                                            <th>Purge In</th>
+                                            <th className="text-center pr-6">Actions</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {jobs.map(j => {
+                                            const initials = j.model ? j.model.charAt(0).toUpperCase() : 'V';
+                                            return (
+                                                <tr key={j.id}>
+                                                    <td className="pl-6 font-mono font-bold text-slate-400 text-[13px]">
+                                                        #{j.job_no || j.id}
+                                                    </td>
+                                                    <td>
+                                                        <div className="name-cell">
+                                                            <div className="avatar" style={{ background: 'var(--bg-main)', border: '1px solid var(--border)' }}>
+                                                                <Car size={16} />
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="name-text">{j.model}</span>
+                                                                <span className="text-[12px] text-primary font-bold">{j.vehicle_number}</span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span className="cell-icon">
+                                                            <User size={14} />
+                                                            {j.customer_name || '—'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="text-slate-400 text-[13px] font-medium">
+                                                        {new Date(j.deleted_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                    </td>
+                                                    <td>
+                                                        <PurgeBadge days={daysLeft(j.deleted_at)} />
+                                                    </td>
+                                                    <td className="pr-6">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <button
+                                                                onClick={() => handleRestoreJob(j.id)}
+                                                                className="btn-icon success animate-icon"
+                                                                title="Restore"
+                                                            >
+                                                                <RotateCcw size={15} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteJob(j.id)}
+                                                                className="btn-icon danger animate-icon"
+                                                                title="Delete Permanently"
+                                                            >
+                                                                <X size={15} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     )
                 )}
