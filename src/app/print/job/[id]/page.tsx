@@ -72,7 +72,7 @@ export default async function PrintJobPage(props: { params: Params, searchParams
                             {/* Header */}
                             <div className="flex justify-between items-start mb-8 pb-6 border-b border-slate-100">
                                 <div className="text-left">
-                                    <h1 className="text-4xl font-black text-slate-900 leading-none">SAI AUTO TECHNIC</h1>
+                                    <h1 className="text-4xl font-black text-slate-900 leading-none">Sai Auto Garage</h1>
                                     {!isFirstPage && <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest italic">Continued - Job #{job.job_no || job.id}</p>}
                                     {isFirstPage && <p className="text-xs font-bold text-slate-500 mt-2 uppercase tracking-[0.3em]">Servicing & Maintenance</p>}
                                 </div>
@@ -228,7 +228,7 @@ export default async function PrintJobPage(props: { params: Params, searchParams
                                     <div className="mt-20 pt-8 border-t border-slate-100 flex justify-between items-end">
                                         <div className="text-left">
                                             <p className="text-sm text-slate-600 font-medium">Thank you for Choosing us for your vehicle care</p>
-                                            <p className="text-base font-black text-slate-900 mt-1 uppercase tracking-tighter">SAI AUTO TECHNIC</p>
+                                            <p className="text-base font-black text-slate-900 mt-1 uppercase tracking-tighter">Sai Auto Garage</p>
                                         </div>
                                         <div className="text-right">
                                             <div className="mb-2">
@@ -241,7 +241,7 @@ export default async function PrintJobPage(props: { params: Params, searchParams
                             )}
 
                             <div className="mt-auto pt-8 text-[10px] text-slate-400 flex justify-between items-center no-print">
-                                <span>SAI AUTO TECHNIC | JOB CARD</span>
+                                <span>Sai Auto Garage | JOB CARD</span>
                                 <span>Page {pageIdx + 1} of {pages.length}</span>
                             </div>
                         </div>
