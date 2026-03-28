@@ -11,25 +11,14 @@ interface Service {
     base_price: number;
 }
 
-export default function ServiceInventoryList({ initialServices, onEdit }: { initialServices: any[], onEdit: (item: any) => void }) {
-    const [services, setServices] = useState<Service[]>(initialServices);
+export default function ServiceInventoryList({ initialServices, onEdit, onDelete }: { initialServices: Service[], onEdit: (item: Service) => void, onDelete: (id: number) => void }) {
+    const services = initialServices;
     const [search, setSearch] = useState('');
 
     const filtered = services.filter(s =>
         s.name.toLowerCase().includes(search.toLowerCase()) ||
         s.category.toLowerCase().includes(search.toLowerCase())
     );
-
-    async function handleDelete(id: number) {
-        if (!confirm('Are you sure you want to delete this service?')) return;
-
-        const res = await deleteMasterService(id);
-        if (res.success) {
-            setServices(services.filter(s => s.id !== id));
-        } else if (res.error) {
-            alert(res.error);
-        }
-    }
 
     return (
         <div className="card max-w-full">
@@ -87,7 +76,7 @@ export default function ServiceInventoryList({ initialServices, onEdit }: { init
                                             <Pencil size={16} />
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(service.id)}
+                                            onClick={() => onDelete(service.id)}
                                             className="action-btn hover:text-red-500 hover:border-red-200"
                                             title="Delete Service"
                                         >

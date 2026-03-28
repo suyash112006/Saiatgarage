@@ -10,7 +10,7 @@ interface LibraryItem {
     model: string;
 }
 
-export default function CarLibraryList({ initialLibrary, onEdit }: { initialLibrary: LibraryItem[], onEdit: (item: any) => void }) {
+export default function CarLibraryList({ initialLibrary, onEdit, onDelete }: { initialLibrary: LibraryItem[], onEdit: (item: any) => void, onDelete: (id: number) => void }) {
     const [search, setSearch] = useState('');
 
     const filtered = initialLibrary.filter(item =>
@@ -28,17 +28,6 @@ export default function CarLibraryList({ initialLibrary, onEdit }: { initialLibr
     }, {});
 
     const brands = Object.keys(grouped).sort();
-
-    async function handleDelete(id: number) {
-        if (!confirm('Are you sure you want to remove this model from the library?')) return;
-
-        const res = await deleteCarLibraryItem(id);
-        if (res.success) {
-            // No need for local state update, parent will refresh
-        } else if (res.error) {
-            alert(res.error);
-        }
-    }
 
     return (
         <div className="card max-w-full">
@@ -102,7 +91,7 @@ export default function CarLibraryList({ initialLibrary, onEdit }: { initialLibr
                                                     <Pencil size={16} />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(item.id)}
+                                                    onClick={() => onDelete(item.id)}
                                                     className="action-btn hover:text-red-500 hover:border-red-200"
                                                     title="Delete Model"
                                                 >

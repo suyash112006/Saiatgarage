@@ -12,8 +12,8 @@ interface Part {
     compatibility: string | null;
 }
 
-export default function PartLibraryList({ libraryParts, onEdit }: { libraryParts: any[], onEdit: (item: any) => void }) {
-    const [parts, setParts] = useState<Part[]>(libraryParts);
+export default function PartLibraryList({ libraryParts, onEdit, onDelete }: { libraryParts: Part[], onEdit: (item: Part) => void, onDelete: (id: number) => void }) {
+    const parts = libraryParts;
     const [search, setSearch] = useState('');
 
     const filtered = parts.filter(p =>
@@ -21,17 +21,6 @@ export default function PartLibraryList({ libraryParts, onEdit }: { libraryParts
         (p.part_no && p.part_no.toLowerCase().includes(search.toLowerCase())) ||
         (p.brand && p.brand.toLowerCase().includes(search.toLowerCase()))
     );
-
-    async function handleDelete(id: number) {
-        if (!confirm('Are you sure you want to remove this master part definition? (This will NOT affect existing inventory stock)')) return;
-
-        const res = await deletePartLibraryItem(id);
-        if (res.success) {
-            setParts(parts.filter(p => p.id !== id));
-        } else if (res.error) {
-            alert(res.error);
-        }
-    }
 
     return (
         <div className="card max-w-full">
@@ -105,7 +94,7 @@ export default function PartLibraryList({ libraryParts, onEdit }: { libraryParts
                                             <Pencil size={16} />
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(part.id)}
+                                            onClick={() => onDelete(part.id)}
                                             className="action-btn hover:text-red-500 hover:border-red-200"
                                             title="Remove from Library"
                                         >

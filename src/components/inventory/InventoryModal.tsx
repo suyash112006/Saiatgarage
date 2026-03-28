@@ -12,12 +12,14 @@ import {
 export default function InventoryModal({
     isOpen,
     onClose,
+    onSuccess,
     type,
     initialData,
     brands = []
 }: {
     isOpen: boolean,
     onClose: () => void,
+    onSuccess: (data: any) => void,
     type: 'services' | 'parts' | 'cars' | 'part_library',
     initialData?: any,
     brands?: any[]
@@ -52,7 +54,7 @@ export default function InventoryModal({
         const formData = new FormData(e.currentTarget);
         if (isEdit) formData.append('id', initialData.id);
 
-        let res;
+        let res: any;
         if (type === 'services') {
             res = isEdit ? await updateMasterService(formData) : await addMasterService(formData);
         } else if (type === 'parts') {
@@ -65,7 +67,11 @@ export default function InventoryModal({
 
         setLoading(false);
         if (res?.success) {
-            onClose();
+            if (res.data) {
+                onSuccess(res.data);
+            } else {
+                onClose();
+            }
         } else {
             setError(res?.error || 'Failed to save item');
         }

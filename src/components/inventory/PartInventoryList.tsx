@@ -13,25 +13,14 @@ interface Part {
     total_value: number;
 }
 
-export default function PartInventoryList({ initialParts, onEdit }: { initialParts: any[], onEdit: (item: any) => void }) {
-    const [parts, setParts] = useState<Part[]>(initialParts);
+export default function PartInventoryList({ initialParts, onEdit, onDelete }: { initialParts: Part[], onEdit: (item: Part) => void, onDelete: (id: number) => void }) {
+    const parts = initialParts;
     const [search, setSearch] = useState('');
 
     const filtered = parts.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         (p.part_no && p.part_no.toLowerCase().includes(search.toLowerCase()))
     );
-
-    async function handleDelete(id: number) {
-        if (!confirm('Are you sure you want to delete this part?')) return;
-
-        const res = await deleteMasterPart(id);
-        if (res.success) {
-            setParts(parts.filter(p => p.id !== id));
-        } else if (res.error) {
-            alert(res.error);
-        }
-    }
 
     return (
         <div className="card max-w-full">
@@ -96,7 +85,7 @@ export default function PartInventoryList({ initialParts, onEdit }: { initialPar
                                             <Pencil size={16} />
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(part.id)}
+                                            onClick={() => onDelete(part.id)}
                                             className="action-btn hover:text-red-500 hover:border-red-200"
                                             title="Delete Part"
                                         >

@@ -19,10 +19,10 @@ export async function addMasterService(formData: FormData) {
     if (!name) return { error: 'Service name is required' };
 
     try {
-        await db.query('INSERT INTO services (name, category, base_price) VALUES ($1, $2, $3)', [name, category || 'General', basePrice]);
+        const res = await db.query('INSERT INTO services (name, category, base_price) VALUES ($1, $2, $3) RETURNING *', [name, category || 'General', basePrice]);
 
         revalidatePath('/dashboard/inventory');
-        return { success: true };
+        return { success: true, data: res.rows[0] };
     } catch (err) {
         return { error: 'Failed to add service' };
     }
@@ -38,10 +38,10 @@ export async function updateMasterService(formData: FormData) {
     const basePrice = Number(formData.get('basePrice')) || 0;
 
     try {
-        await db.query('UPDATE services SET name = $1, category = $2, base_price = $3 WHERE id = $4', [name, category, basePrice, id]);
+        const res = await db.query('UPDATE services SET name = $1, category = $2, base_price = $3 WHERE id = $4 RETURNING *', [name, category, basePrice, id]);
 
         revalidatePath('/dashboard/inventory');
-        return { success: true };
+        return { success: true, data: res.rows[0] };
     } catch (err) {
         return { error: 'Failed to update service' };
     }
@@ -85,13 +85,13 @@ export async function addMasterPart(formData: FormData) {
     const totalValue = unitPrice * stockQuantity;
 
     try {
-        await db.query(
-            'INSERT INTO parts (name, part_no, unit_price, stock_quantity, total_value, brand, compatibility) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        const res = await db.query(
+            'INSERT INTO parts (name, part_no, unit_price, stock_quantity, total_value, brand, compatibility) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
             [name, partNo || null, unitPrice, stockQuantity, totalValue, brand || null, compatibility || null]
         );
 
         revalidatePath('/dashboard/inventory');
-        return { success: true };
+        return { success: true, data: res.rows[0] };
     } catch (err: any) {
         if (err.code === '23505') { // Postgres UNIQUE
             return { error: 'Part Number already exists' };
@@ -114,13 +114,13 @@ export async function updateMasterPart(formData: FormData) {
     const totalValue = unitPrice * stockQuantity;
 
     try {
-        await db.query(
-            'UPDATE parts SET name = $1, part_no = $2, unit_price = $3, stock_quantity = $4, total_value = $5, brand = $6, compatibility = $7 WHERE id = $8',
+        const res = await db.query(
+            'UPDATE parts SET name = $1, part_no = $2, unit_price = $3, stock_quantity = $4, total_value = $5, brand = $6, compatibility = $7 WHERE id = $8 RETURNING *',
             [name, partNo, unitPrice, stockQuantity, totalValue, brand, compatibility, id]
         );
 
         revalidatePath('/dashboard/inventory');
-        return { success: true };
+        return { success: true, data: res.rows[0] };
     } catch (err) {
         return { error: 'Failed to update part' };
     }
@@ -280,12 +280,12 @@ export async function addPartLibraryItem(formData: FormData) {
     if (!name) return { error: 'Part name is required' };
 
     try {
-        await db.query(
-            'INSERT INTO part_library (name, part_no, brand, compatibility, unit_price) VALUES ($1, $2, $3, $4, $5)',
+        const res = await db.query(
+            'INSERT INTO part_library (name, part_no, brand, compatibility, unit_price) VALUES ($1, $2, $3, $4, $5) RETURNING *',
             [name, partNo || null, brand || null, compatibility || null, unitPrice]
         );
         revalidatePath('/dashboard/inventory');
-        return { success: true };
+        return { success: true, data: res.rows[0] };
     } catch (err: any) {
         if (err.code === '23505') return { error: 'Part Number already exists in Library' };
         return { error: 'Failed to add to library' };
@@ -304,12 +304,12 @@ export async function updatePartLibraryItem(formData: FormData) {
     const unitPrice = Number(formData.get('unitPrice')) || 0;
 
     try {
-        await db.query(
-            'UPDATE part_library SET name = $1, part_no = $2, brand = $3, compatibility = $4, unit_price = $5 WHERE id = $6',
+        const res = await db.query(
+            'UPDATE part_library SET name = $1, part_no = $2, brand = $3, compatibility = $4, unit_price = $5 WHERE id = $6 RETURNING *',
             [name, partNo, brand, compatibility, unitPrice, id]
         );
         revalidatePath('/dashboard/inventory');
-        return { success: true };
+        return { success: true, data: res.rows[0] };
     } catch (err) {
         return { error: 'Failed to update library item' };
     }
