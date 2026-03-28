@@ -18,6 +18,9 @@ export default function AutoDownloadPDF({ elementSelector, filename }: AutoDownl
             return;
         }
 
+        // Force light mode styles temporarily for capturing
+        element.classList.add('force-light');
+
         const opt = {
             margin: 0,
             filename: filename,
@@ -36,12 +39,17 @@ export default function AutoDownloadPDF({ elementSelector, filename }: AutoDownl
         // @ts-ignore
         if (typeof html2pdf !== 'undefined') {
             // @ts-ignore
-            html2pdf().set(opt).from(element).save().then(() => {
-                // Navigate back after download finishes or starts
+            html2pdf().set(opt).from(element).toPdf().get('pdf').then((pdf) => {
+                // Remove force-light after PDF is captured
+                element.classList.remove('force-light');
+            }).save().then(() => {
+                // Navigate back after download finishes
                 setTimeout(() => {
                     window.history.back();
                 }, 1000);
             });
+        } else {
+            element.classList.remove('force-light');
         }
     };
 

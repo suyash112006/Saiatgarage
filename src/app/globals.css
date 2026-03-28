@@ -3048,19 +3048,6 @@ h3 {
     display: block !important;
   }
 
-  .invoice-page {
-    max-width: 100% !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    background: white !important;
-    color: black !important;
-    overflow: visible !important;
-  }
-
-  /* 🖋️ Force High Contrast Black Text only (Avoid global border force) */
   .invoice-page,
   .invoice-page *,
   .invoice-page [class*="text-slate-"] {
@@ -3070,6 +3057,11 @@ h3 {
     print-color-adjust: exact !important;
     opacity: 1 !important;
     fill: #000 !important;
+  }
+
+  /* Force white backgrounds specifically */
+  .invoice-page, .invoice-container {
+    background: #ffffff !important;
   }
 
   /* 📏 Minimal Table Styles - Eliminating Extra Lines */
@@ -3157,3 +3149,40 @@ h3 {
     border-color: #334155 !important;
   }
 }
+/* ?? Force Light Mode Override for PDF Capturing */
+.force-light .invoice-page {
+  background: white !important;
+  color: black !important;
+  min-height: 296mm !important;
+  position: relative !important;
+}
+
+.force-light .invoice-page * {
+  color: #0f172a !important;
+}
+
+.force-light .invoice-page .text-slate-600,
+.force-light .invoice-page .text-slate-500 {
+  color: #475569 !important;
+}
+
+.force-light .invoice-page .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+.force-light .invoice-page .border-slate-100 {
+  border-color: #f1f5f9 !important;
+}
+
+.force-light .invoice-page .bg-white {
+  background-color: white !important;
+}
+
+@media print {
+  .invoice-page {
+    min-height: 297mm !important;
+    height: 297mm !important;
+    page-break-after: always !important;
+  }
+}
+

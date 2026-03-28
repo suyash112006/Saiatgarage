@@ -56,7 +56,7 @@ export default async function InvoicePage({ params, searchParams }: {
             </div>
 
             {/* Invoice Container - Optimized for A4 */}
-            <div className="invoice-container">
+            <div className={`invoice-container ${isDownload ? 'force-light' : ''}`}>
                 {pages.map((pageItems, pageIdx) => {
                     const isFirstPage = pageIdx === 0;
                     const isLastPage = pageIdx === pages.length - 1;

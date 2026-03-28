@@ -55,7 +55,7 @@ export default async function PrintJobPage(props: { params: Params, searchParams
                 <PrintButton />
             </div>
 
-            <div className="invoice-container">
+            <div className={`invoice-container ${isDownload ? 'force-light' : ''}`}>
                 {pages.map((pageItems, pageIdx) => {
                     const isFirstPage = pageIdx === 0;
                     const isLastPage = pageIdx === pages.length - 1;

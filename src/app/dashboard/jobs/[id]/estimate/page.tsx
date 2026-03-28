@@ -79,7 +79,7 @@ export default async function EstimatePage(props: {
                 <PrintInvoiceButton />
             </div>
 
-            <div className="invoice-container">
+            <div className={`invoice-container ${isDownload ? 'force-light' : ''}`}>
                 {pages.map((pageItems, pageIdx) => {
                     const isFirstPage = pageIdx === 0;
                     const isLastPage = pageIdx === pages.length - 1;
