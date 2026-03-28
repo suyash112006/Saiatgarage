@@ -6,8 +6,8 @@ export async function updateJobTotals(jobId: number) {
         // 1. Fetch all components needed for the total calculation
         const res = await db.query(`
             SELECT 
-                (SELECT COALESCE(SUM(price * quantity), 0) FROM job_card_services WHERE job_id = $1) as s_total,
-                (SELECT COALESCE(SUM(price * quantity), 0) FROM job_card_parts WHERE job_id = $1) as p_total,
+                (SELECT COALESCE(SUM(price * quantity), 0) FROM job_card_services WHERE job_id = $1 AND COALESCE(is_future, 0) = 0) as s_total,
+                (SELECT COALESCE(SUM(price * quantity), 0) FROM job_card_parts WHERE job_id = $1 AND COALESCE(is_future, 0) = 0) as p_total,
                 (SELECT COALESCE(CAST(value AS NUMERIC), 18) FROM settings WHERE key = 'tax_rate') as tax_rate
         `, [jobId]);
 

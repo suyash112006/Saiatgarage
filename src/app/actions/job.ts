@@ -380,6 +380,41 @@ export async function addJobServices(jobId: number, services: { id: number, quan
     }
 }
 
+export async function updateJobItemOrder(jobId: number, type: 'service' | 'part', items: { id: number, sort_order: number }[]) {
+    const session = await getSession();
+    if (!session) return { error: 'Unauthorized' };
+
+    const table = type === 'service' ? 'job_card_services' : 'job_card_parts';
+
+    try {
+        for (const item of items) {
+            await db.query(`UPDATE ${table} SET sort_order = $1 WHERE id = $2 AND job_id = $3`, [item.sort_order, item.id, jobId]);
+        }
+        revalidatePath(`/dashboard/jobs/${jobId}`);
+        return { success: true };
+    } catch (err) {
+        console.error('Update Order Error:', err);
+        return { error: 'Failed' };
+    }
+}
+
+export async function toggleJobItemFuture(jobId: number, type: 'service' | 'part', itemId: number) {
+    const session = await getSession();
+    if (!session) return { error: 'Unauthorized' };
+
+    const table = type === 'service' ? 'job_card_services' : 'job_card_parts';
+
+    try {
+        await db.query(`UPDATE ${table} SET is_future = 1 - COALESCE(is_future, 0) WHERE id = $1 AND job_id = $2`, [itemId, jobId]);
+        await updateJobTotals(jobId);
+        revalidatePath(`/dashboard/jobs/${jobId}`);
+        return { success: true };
+    } catch (err) {
+        console.error('Toggle Future Error:', err);
+        return { error: 'Failed' };
+    }
+}
+
 export async function removeJobService(jobId: number, itemId: number) {
     const session = await getSession();
     if (!session) return { error: 'Unauthorized' };
@@ -567,10 +602,19 @@ export const getJobDetails = cache(async (id: number) => {
 
     if (!job) return null;
 
-    const servicesRes = await db.query('SELECT * FROM job_card_services WHERE job_id = $1', [id]);
-    const partsRes = await db.query('SELECT * FROM job_card_parts WHERE job_id = $1', [id]);
+    const servicesRes = await db.query('SELECT * FROM job_card_services WHERE job_id = $1 ORDER BY COALESCE(sort_order, 0) ASC, id ASC', [id]);
+    const partsRes = await db.query('SELECT * FROM job_card_parts WHERE job_id = $1 ORDER BY COALESCE(sort_order, 0) ASC, id ASC', [id]);
 
-    return { job, services: servicesRes.rows, parts: partsRes.rows };
+    const allServices = servicesRes.rows;
+    const allParts = partsRes.rows;
+
+    return { 
+        job, 
+        services: allServices.filter((s: any) => !s.is_future),
+        futureServices: allServices.filter((s: any) => s.is_future),
+        parts: allParts.filter((p: any) => !p.is_future),
+        futureParts: allParts.filter((p: any) => p.is_future)
+    };
 });
 
 export async function deleteJobCard(jobId: number) {

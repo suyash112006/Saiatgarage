@@ -14,6 +14,7 @@ import {
 import { notFound, redirect } from 'next/navigation';
 import AddServiceForm from '@/components/AddServiceForm';
 import AddPartForm from '@/components/AddPartForm';
+import SortableItemList from '@/components/SortableItemList';
 import CollapsibleSection from '@/components/CollapsibleSection';
 import JobActionsFooter from '@/components/JobActionsFooter';
 
@@ -28,7 +29,7 @@ export default async function JobViewWrapper({ jobId }: JobViewWrapperProps) {
 
     if (!data) notFound();
 
-    const { job, services, parts } = data;
+    const { job, services, futureServices, parts, futureParts } = data;
     const masterServices = await getMasterServices();
     const masterParts = await getMasterParts();
     const mechanics = isAdmin ? await getMechanics() : [];
@@ -265,52 +266,65 @@ export default async function JobViewWrapper({ jobId }: JobViewWrapperProps) {
 
                     <CollapsibleSection title="Services & Labour" icon={<Settings className="w-[18px] h-[18px] md:w-[22px] md:h-[22px] text-primary" />}>
                         <div className="flex justify-end mb-4">{!isLocked && <AddServiceForm jobId={jobId} masterServices={masterServices} isAdmin={isAdmin} />}</div>
-                        {services.length === 0 ? (
-                            <div className="py-8 text-center border-b border-dashed border-slate-200 mb-8"><p className="text-sm text-slate-400 font-medium">No services added yet</p></div>
-                        ) : (
-                            <div className="space-y-3 mb-6">
-                                {services.map((item: any) => (
-                                    <div key={item.id} className="flex justify-between items-center p-4 border rounded-xl hover:border-blue-300 transition-all" style={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border)' }}>
-                                        <div>
-                                            <div className="text-sm font-bold mb-1" style={{ color: 'var(--text-main)' }}>{item.service_name}</div>
-                                            <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>QTY: {item.quantity}</div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            {isAdmin && <div className="text-sm font-black" style={{ color: 'var(--text-main)' }}>₹{(item.price * item.quantity).toLocaleString()}</div>}
-                                            {!isLocked && (
-                                                <form action={async () => { 'use server'; await removeJobService(jobId, item.id); }}>
-                                                    <button type="submit" className="icon-btn hover:text-red-500 hover:border-red-500/30 transition-all"><X size={18} /></button>
-                                                </form>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                        <SortableItemList 
+                            jobId={jobId} 
+                            initialItems={services} 
+                            type="service" 
+                            isAdmin={isAdmin} 
+                            isLocked={isLocked} 
+                        />
                     </CollapsibleSection>
 
                     <CollapsibleSection title="Parts & Inventory" icon={<Cpu className="w-[18px] h-[18px] md:w-[22px] md:h-[22px] text-primary" />}>
                         <div className="flex justify-end mb-4">{!isLocked && <AddPartForm jobId={jobId} masterParts={masterParts} isAdmin={isAdmin} />}</div>
-                        {parts.length === 0 ? (
-                            <div className="py-8 text-center mb-4"><p className="text-sm text-slate-400 font-medium">No parts added yet</p></div>
-                        ) : (
-                            <div className="space-y-3">
-                                {parts.map((item: any) => (
-                                    <div key={item.id} className="flex justify-between items-center p-4 border rounded-xl hover:border-blue-300 transition-all" style={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border)' }}>
-                                        <div>
-                                            <div className="text-sm font-bold mb-1" style={{ color: 'var(--text-main)' }}>{item.part_name}</div>
-                                            <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{item.part_no} • QTY: {item.quantity}</div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            {isAdmin && <div className="text-sm font-black" style={{ color: 'var(--text-main)' }}>₹{(item.price * item.quantity).toLocaleString()}</div>}
-                                            {!isLocked && (
-                                                <form action={async () => { 'use server'; await removeJobPart(jobId, item.id); }}>
-                                                    <button type="submit" className="icon-btn hover:text-red-500 hover:border-red-500/30 transition-all"><X size={18} /></button>
-                                                </form>
-                                            )}
-                                        </div>
+                        <SortableItemList 
+                            jobId={jobId} 
+                            initialItems={parts} 
+                            type="part" 
+                            isAdmin={isAdmin} 
+                            isLocked={isLocked} 
+                        />
+                    </CollapsibleSection>
+
+                    <CollapsibleSection title="In Future Work" icon={<Clock className="w-[18px] h-[18px] md:w-[22px] md:h-[22px] text-primary" />}>
+                        <div className="p-4 mb-4 text-xs bg-blue-50/50 text-blue-600 rounded-xl border border-blue-100 flex items-center gap-2">
+                            <Hash size={14} />
+                            <span>Items listed here are <b>not included</b> in the current bill total. Click an item to move it back to the active job.</span>
+                        </div>
+                        
+                        {(futureServices.length > 0 || futureParts.length > 0) ? (
+                            <div className="space-y-6">
+                                {futureServices.length > 0 && (
+                                    <div>
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 ml-1">Services</h4>
+                                        <SortableItemList 
+                                            jobId={jobId} 
+                                            initialItems={futureServices} 
+                                            type="service" 
+                                            isAdmin={isAdmin} 
+                                            isLocked={isLocked}
+                                            isFutureView
+                                        />
                                     </div>
-                                ))}
+                                )}
+                                {futureParts.length > 0 && (
+                                    <div>
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 ml-1">Parts</h4>
+                                        <SortableItemList 
+                                            jobId={jobId} 
+                                            initialItems={futureParts} 
+                                            type="part" 
+                                            isAdmin={isAdmin} 
+                                            isLocked={isLocked}
+                                            isFutureView
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="py-12 text-center border-2 border-dashed border-slate-100 rounded-2xl">
+                                <p className="text-sm text-slate-400 font-medium italic">No future recommendations added</p>
+                                <p className="text-[10px] text-slate-300 uppercase tracking-tighter mt-1">Tip: Click an active service to move it here</p>
                             </div>
                         )}
                     </CollapsibleSection>
