@@ -42,9 +42,9 @@ export default async function EstimatePage(props: {
     const serviceItems = services.map((s: any) => ({ ...s, type: 'service' }));
     const allItems = [...partsItems, ...serviceItems];
 
-    // Pagination logic
-    const itemsPerPageFirst = 12;
-    const itemsPerPageOthers = 20;
+    // Pagination logic - reduced for safety/padding
+    const itemsPerPageFirst = 10;
+    const itemsPerPageOthers = 15;
     const pages: any[][] = [];
 
     let currentItemIdx = 0;
@@ -79,7 +79,7 @@ export default async function EstimatePage(props: {
                 <PrintInvoiceButton />
             </div>
 
-            <div className={`invoice-container ${isDownload ? 'force-light' : ''}`}>
+            <div className={`invoice-container ${isDownload ? 'force-light' : ''}`} data-theme="light">
                 {pages.map((pageItems, pageIdx) => {
                     const isFirstPage = pageIdx === 0;
                     const isLastPage = pageIdx === pages.length - 1;

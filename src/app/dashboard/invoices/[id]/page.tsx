@@ -32,9 +32,9 @@ export default async function InvoicePage({ params, searchParams }: {
     const serviceItems = invoice.services.map((s: any) => ({ ...s, type: 'service' }));
     const allItems = [...partsItems, ...serviceItems];
 
-    // Pagination logic
-    const itemsPerPageFirst = 12;
-    const itemsPerPageOthers = 20;
+    // Pagination logic - reduced for safety/padding
+    const itemsPerPageFirst = 10;
+    const itemsPerPageOthers = 15;
     const pages: any[][] = [];
 
     let currentItemIdx = 0;
@@ -56,7 +56,7 @@ export default async function InvoicePage({ params, searchParams }: {
             </div>
 
             {/* Invoice Container - Optimized for A4 */}
-            <div className={`invoice-container ${isDownload ? 'force-light' : ''}`}>
+            <div className={`invoice-container ${isDownload ? 'force-light' : ''}`} data-theme="light">
                 {pages.map((pageItems, pageIdx) => {
                     const isFirstPage = pageIdx === 0;
                     const isLastPage = pageIdx === pages.length - 1;

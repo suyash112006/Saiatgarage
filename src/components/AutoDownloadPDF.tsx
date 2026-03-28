@@ -11,15 +11,21 @@ interface AutoDownloadPDFProps {
 export default function AutoDownloadPDF({ elementSelector, filename }: AutoDownloadPDFProps) {
     const [isGenerating, setIsGenerating] = useState(true);
 
-    const handleDownload = () => {
-        const element = document.querySelector(elementSelector);
+    const handleDownload = async () => {
+        const element = document.querySelector(elementSelector) as HTMLElement;
         if (!element) {
             console.error('PDF element not found:', elementSelector);
             return;
         }
 
-        // Force light mode styles temporarily for capturing
+        // Force light mode styles and data-theme
+        const originalTheme = document.documentElement.getAttribute('data-theme');
+        document.documentElement.setAttribute('data-theme', 'light');
+        element.setAttribute('data-theme', 'light');
         element.classList.add('force-light');
+
+        // Give the browser a moment to repaint with light mode styles
+        await new Promise(resolve => setTimeout(resolve, 200));
 
         const opt = {
             margin: 0,
@@ -39,16 +45,19 @@ export default function AutoDownloadPDF({ elementSelector, filename }: AutoDownl
         // @ts-ignore
         if (typeof html2pdf !== 'undefined') {
             // @ts-ignore
-            html2pdf().set(opt).from(element).toPdf().get('pdf').then((pdf) => {
-                // Remove force-light after PDF is captured
+            html2pdf().set(opt).from(element).toPdf().get('pdf').then(() => {
+                // Restore theme and remove class
+                if (originalTheme) {
+                    document.documentElement.setAttribute('data-theme', originalTheme);
+                }
                 element.classList.remove('force-light');
             }).save().then(() => {
-                // Navigate back after download finishes
                 setTimeout(() => {
                     window.history.back();
                 }, 1000);
             });
         } else {
+            if (originalTheme) document.documentElement.setAttribute('data-theme', originalTheme);
             element.classList.remove('force-light');
         }
     };

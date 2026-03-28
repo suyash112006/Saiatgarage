@@ -3048,9 +3048,12 @@ h3 {
     display: block !important;
   }
 
+  /* 🖋️ Force High Contrast Black Text only (Avoid global border force) */
   .invoice-page,
   .invoice-page *,
-  .invoice-page [class*="text-slate-"] {
+  .invoice-page [class*="text-slate-"],
+  [data-theme="dark"] .invoice-page *,
+  [data-theme="dark"] .invoice-page [class*="text-slate-"] {
     color: #000000 !important;
     background-color: transparent !important;
     -webkit-print-color-adjust: exact !important;
@@ -3060,7 +3063,7 @@ h3 {
   }
 
   /* Force white backgrounds specifically */
-  .invoice-page, .invoice-container {
+  .invoice-page, .invoice-container, [data-theme="dark"] .invoice-container, [data-theme="dark"] .invoice-page {
     background: #ffffff !important;
   }
 
@@ -3068,23 +3071,24 @@ h3 {
   .invoice-table {
     border-spacing: 0;
     width: 100%;
-    border-top: 1.5px solid #000 !important;
-    border-bottom: 1.5px solid #000 !important;
-    margin: 1rem 0;
+    border-top: 2px solid #000 !important;
+    border-bottom: 2px solid #000 !important;
+    margin: 1.5rem 0;
   }
 
   .invoice-table th {
     border-bottom: 1px solid #000 !important;
-    padding: 12px 4px !important;
+    padding: 12px 6px !important;
     font-weight: 800 !important;
     text-align: left;
     text-transform: uppercase;
+    font-size: 11px !important;
   }
 
   .invoice-table td {
-    padding: 10px 4px !important;
-    border: none !important;
-    /* Remove all internal cell borders */
+    padding: 10px 6px !important;
+    border-bottom: 0.5px solid #eee !important;
+    font-size: 12px !important;
   }
 
   .invoice-table tr {
@@ -3158,7 +3162,8 @@ h3 {
 }
 
 .force-light .invoice-page * {
-  color: #0f172a !important;
+  color: #0f172a !important; /* slate-900 */
+  border-color: #e2e8f0 !important; /* slate-200 */
 }
 
 .force-light .invoice-page .text-slate-600,
@@ -3180,9 +3185,19 @@ h3 {
 
 @media print {
   .invoice-page {
-    min-height: 297mm !important;
-    height: 297mm !important;
+    min-height: 295mm !important; /* A bit less than 297 to allow margin */
     page-break-after: always !important;
+    break-after: page !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: white !important;
+  }
+  
+  /* Ensure last page doesn't forced a blank page */
+  .invoice-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+    min-height: auto !important;
   }
 }
 

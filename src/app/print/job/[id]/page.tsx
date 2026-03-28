@@ -34,9 +34,9 @@ export default async function PrintJobPage(props: { params: Params, searchParams
         return acc + (price * qty);
     }, 0);
 
-    // Pagination logic (Keeping it consistent with Invoice's multi-page support if needed)
-    const itemsPerPageFirst = 12;
-    const itemsPerPageOthers = 20;
+    // Pagination logic - reduced for safety/padding
+    const itemsPerPageFirst = 10;
+    const itemsPerPageOthers = 15;
     const pages: any[][] = [];
 
     let currentItemIdx = 0;
@@ -55,7 +55,7 @@ export default async function PrintJobPage(props: { params: Params, searchParams
                 <PrintButton />
             </div>
 
-            <div className={`invoice-container ${isDownload ? 'force-light' : ''}`}>
+            <div className={`invoice-container ${isDownload ? 'force-light' : ''}`} data-theme="light">
                 {pages.map((pageItems, pageIdx) => {
                     const isFirstPage = pageIdx === 0;
                     const isLastPage = pageIdx === pages.length - 1;
