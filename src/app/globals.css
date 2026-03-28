@@ -455,7 +455,11 @@ body {
     border-radius: 12px;
     gap: 12px;
     font-size: 14px;
-    background: rgba(239, 68, 68, 0.05);
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    width: 100%;
+    margin-bottom: 8px;
   }
 
   .sidebar-footer .logout-pill span {
@@ -463,6 +467,8 @@ body {
   }
 
   .sidebar-nav {
+    flex: 1;
+    min-height: 0;
     flex-direction: column;
     padding: 12px;
     overflow-y: auto;
