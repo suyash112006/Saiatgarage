@@ -3036,6 +3036,9 @@ h3 {
   min-height: auto !important;
   width: 210mm !important; /* Force A4 Width for Capture */
   gap: 0 !important;
+  overflow: hidden !important; /* Prevent extra blank pages at end */
+  font-size: 0 !important; /* Remove whitespace gaps between pages */
+  line-height: 0 !important;
 }
 
 @media print {
@@ -3078,6 +3081,8 @@ h3 {
   flex-direction: column;
   border: 1px solid var(--border);
   overflow: hidden !important; /* Prevent content bleeding */
+  font-size: 14px !important; /* Restore font size after zero-gap on parent */
+  line-height: 1.5 !important;
 }
 
 /* Specific styling when being captured for PDF */
@@ -3086,6 +3091,8 @@ h3 {
   margin: 0 !important;
   border: none !important;
   min-height: 297mm !important; /* Strict A4 height */
+  max-height: 297mm !important;
+  box-sizing: border-box !important;
 }
 
 .invoice-page *,

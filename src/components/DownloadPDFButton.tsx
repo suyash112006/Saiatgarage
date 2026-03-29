@@ -49,10 +49,12 @@ export default function DownloadPDFButton({ elementSelector, filename }: Downloa
                 useCORS: true, 
                 logging: false,
                 letterRendering: true,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                scrollY: 0,
+                scrollX: 0
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['css', 'legacy'], before: '.page-break', avoid: '.invoice-page' }
+            pagebreak: { mode: 'css', after: '.page-break', avoid: '.invoice-page' }
         };
 
         // @ts-expect-error - html2pdf is loaded from a script tag
