@@ -49,7 +49,7 @@ export default async function InvoicePage({ params }: {
     return (
         <>
             {/* Action Bar - Fixed on Screen */}
-            <div className="no-print fixed top-6 right-6 z-50 flex items-center gap-3">
+            <div className="no-print fixed bottom-6 left-6 right-6 sm:top-6 sm:bottom-auto sm:left-auto sm:right-6 z-50 flex items-center justify-center sm:justify-end gap-2 sm:gap-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-3 rounded-full border border-slate-200 dark:border-slate-800 shadow-2xl sm:bg-transparent sm:backdrop-blur-none sm:p-0 sm:border-none sm:shadow-none transition-all">
                 <DownloadPDFButton 
                     elementSelector=".invoice-container"
                     filename={`${invoice.invoice_no}.pdf`}

@@ -3085,6 +3085,32 @@ h3 {
   line-height: 1.5 !important;
 }
 
+@media (max-width: 210mm) {
+  .invoice-page {
+    width: 98vw !important;
+    min-height: auto !important;
+    max-height: none !important;
+    height: auto !important;
+    padding: 1rem !important;
+    font-size: 13px !important;
+    box-shadow: none !important;
+    border-radius: 1rem !important;
+  }
+
+  .invoice-page .text-4xl {
+    font-size: 1.5rem !important;
+  }
+
+  .invoice-page h2.text-4xl {
+    font-size: 2rem !important;
+  }
+
+  .invoice-header table,
+  .invoice-page table {
+    font-size: 12px !important;
+  }
+}
+
 /* Specific styling when being captured for PDF */
 .pdf-capture .invoice-page {
   box-shadow: none !important;
