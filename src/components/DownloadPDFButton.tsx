@@ -25,9 +25,7 @@ export default function DownloadPDFButton({ elementSelector, filename }: Downloa
             return;
         }
 
-        // Force light mode styles and data-theme
-        const originalTheme = document.documentElement.getAttribute('data-theme');
-        document.documentElement.setAttribute('data-theme', 'light');
+        // Force light mode styles only on the target element
         element.setAttribute('data-theme', 'light');
         element.classList.add('force-light', 'pdf-capture');
 
@@ -57,16 +55,12 @@ export default function DownloadPDFButton({ elementSelector, filename }: Downloa
             } catch (err) {
                 console.error('PDF Generation Error:', err);
             } finally {
-                // Restore theme and remove class
-                if (originalTheme) {
-                    document.documentElement.setAttribute('data-theme', originalTheme);
-                }
+                // Restore element specific classes
                 element.classList.remove('force-light', 'pdf-capture');
                 setIsGenerating(false);
             }
         } else {
             setIsGenerating(false);
-            if (originalTheme) document.documentElement.setAttribute('data-theme', originalTheme);
             element.classList.remove('force-light', 'pdf-capture');
         }
     };
@@ -82,10 +76,10 @@ export default function DownloadPDFButton({ elementSelector, filename }: Downloa
             <button
                 onClick={handleDownload}
                 disabled={isGenerating || !scriptLoaded}
-                className={`btn shadow-lg flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black uppercase tracking-wider transition-all active:scale-95 ${
+                className={`btn shadow-xl flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black uppercase tracking-wider transition-all active:scale-95 ${
                     isGenerating 
                     ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                    : 'bg-slate-900 text-white hover:scale-105'
+                    : 'btn-primary hover:translate-y-[-2px]'
                 }`}
                 title="Download PDF"
             >
