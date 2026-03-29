@@ -54,7 +54,7 @@ export default function DownloadPDFButton({ elementSelector, filename }: Downloa
                 scrollX: 0
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: 'css', after: '.page-break', avoid: '.invoice-page' }
+            pagebreak: { mode: ['avoid-all', 'css'] }
         };
 
         // @ts-expect-error - html2pdf is loaded from a script tag

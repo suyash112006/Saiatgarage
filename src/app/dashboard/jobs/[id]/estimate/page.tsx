@@ -93,7 +93,7 @@ export default async function EstimatePage(props: {
                     const pageServices = pageItems.filter(item => item.type === 'service');
 
                     return (
-                        <div key={pageIdx} className={`invoice-page ${!isLastPage ? 'page-break' : ''} bg-white shadow-none`}>
+                        <div key={pageIdx} className="invoice-page bg-white shadow-none">
 
                             {/* Header - Show full branding only on first page */}
 

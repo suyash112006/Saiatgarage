@@ -3092,7 +3092,11 @@ h3 {
   border: none !important;
   min-height: 297mm !important; /* Strict A4 height */
   max-height: 297mm !important;
+  height: 297mm !important;
+  width: 210mm !important;
   box-sizing: border-box !important;
+  page-break-after: avoid !important;
+  page-break-before: avoid !important;
 }
 
 .invoice-page *,
