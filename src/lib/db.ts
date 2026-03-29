@@ -47,15 +47,19 @@ const initPostgres = () => {
         console.log('--- Initializing Postgres Connection Pool ---');
         console.log('URL defined:', !!process.env.DATABASE_URL);
 
-        // Add connection timeout and other config for better performance/debugging
+        // SSL configuration: ensure we avoid the 'prefer/require aliasing' warning
+        // by being explicit about the SSL requirement.
+        const isSslRequired = process.env.DATABASE_URL?.includes('sslmode=require') || 
+                            process.env.DATABASE_URL?.includes('neon.tech');
+
         pool = new Pool({
             connectionString: process.env.DATABASE_URL,
-            ssl: {
-                rejectUnauthorized: false
-            },
-            max: 10, // Max number of clients in the pool
-            idleTimeoutMillis: 15000, // Close idle clients after 15 seconds (prune potentially dead ones)
-            connectionTimeoutMillis: 10000, // Give Neon 10 seconds to wake up
+            ssl: isSslRequired ? {
+                rejectUnauthorized: false,
+            } : false,
+            max: 20, // Increased for parallel queries
+            idleTimeoutMillis: 30000, 
+            connectionTimeoutMillis: 10000, 
         });
 
         pool.on('error', (err) => {

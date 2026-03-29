@@ -3068,6 +3068,19 @@ h3 {
   }
 }
 
+/* 📱 Responsive Mobile Document Scaling - REVERTED TO PC VIEW */
+/* Keeping only the container padding adjustment for small screens */
+@media (max-width: 210mm) {
+  .invoice-container {
+    padding: 1rem 0 !important;
+    gap: 1rem !important;
+    align-items: flex-start !important; /* Document starts at left edge */
+    overflow-x: auto !important; /* Allow swipe to right side */
+    width: 100vw !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 .invoice-page {
   background: #ffffff !important;
   width: 210mm;
@@ -3083,32 +3096,6 @@ h3 {
   overflow: hidden !important; /* Prevent content bleeding */
   font-size: 14px !important; /* Restore font size after zero-gap on parent */
   line-height: 1.5 !important;
-}
-
-@media (max-width: 210mm) {
-  .invoice-page {
-    width: 98vw !important;
-    min-height: auto !important;
-    max-height: none !important;
-    height: auto !important;
-    padding: 1rem !important;
-    font-size: 13px !important;
-    box-shadow: none !important;
-    border-radius: 1rem !important;
-  }
-
-  .invoice-page .text-4xl {
-    font-size: 1.5rem !important;
-  }
-
-  .invoice-page h2.text-4xl {
-    font-size: 2rem !important;
-  }
-
-  .invoice-header table,
-  .invoice-page table {
-    font-size: 12px !important;
-  }
 }
 
 /* Specific styling when being captured for PDF */

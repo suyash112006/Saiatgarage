@@ -29,13 +29,31 @@ export async function createJob(formData: FormData) {
             return { error: `KM Reading cannot be less than previous recording (${vehicle.last_km} KM)` };
         }
 
-        // 1. Get next Job Number (safely handle numeric values and skip legacy/deleted items)
+        // 1. Get next Job Number (YYYYMMDD-SEQ format)
+        const now = new Date();
+        const istDate = new Intl.DateTimeFormat('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(now).split('/').reverse().join(''); // Converts DD/MM/YYYY to YYYYMMDD
+        
         const lastJobRes = await db.query(`
-            SELECT MAX(CAST(job_no AS INTEGER)) as max_no 
-            FROM job_cards 
-            WHERE job_no ~ '^[0-9]+$' AND deleted_at IS NULL
-        `);
-        const nextJobNo = (Number(lastJobRes.rows[0]?.max_no) || 0) + 1;
+            SELECT job_no FROM job_cards 
+            WHERE job_no LIKE $1 || '-%' AND deleted_at IS NULL
+            ORDER BY job_no DESC LIMIT 1
+        `, [istDate]);
+        
+        let nextSeq = 1;
+        if (lastJobRes.rows[0]) {
+            const parts = lastJobRes.rows[0].job_no.split('-');
+            const lastSeq = parseInt(parts[1]);
+            if (!isNaN(lastSeq)) {
+                nextSeq = lastSeq + 1;
+            }
+        }
+        
+        const nextJobNo = `${istDate}-${nextSeq.toString().padStart(2, '0')}`;
 
         // 2. Create Job Card
         const jobRes = await db.query(`
@@ -589,32 +607,50 @@ export async function removeJobPart(jobId: number, itemId: number) {
 }
 
 export const getJobDetails = cache(async (id: number) => {
-    const jobRes = await db.query(`
-    SELECT j.*, j.complaints as complaint,
-           c.name as customer_name, c.mobile, c.address,
-           v.model, v.vehicle_number, v.last_km, v.vin
-    FROM job_cards j
-    JOIN customers c ON j.customer_id = c.id
-    JOIN vehicles v ON j.vehicle_id = v.id
-    WHERE j.id = $1
-  `, [id]);
-    const job = jobRes.rows[0];
+    try {
+        const [jobRes, servicesRes, partsRes] = await Promise.all([
+            db.query(`
+                SELECT j.*, j.complaints as complaint,
+                       c.name as customer_name, c.mobile as customer_mobile, c.address as customer_address,
+                       v.model as vehicle_model, v.vehicle_number, v.last_km, v.vin
+                FROM job_cards j
+                JOIN vehicles v ON j.vehicle_id = v.id
+                JOIN customers c ON v.customer_id = c.id
+                WHERE j.id = $1 AND j.deleted_at IS NULL
+            `, [id]),
+            db.query(`
+                SELECT jcs.*, s.name as service_name, s.category
+                FROM job_card_services jcs
+                LEFT JOIN services s ON jcs.service_id = s.id
+                WHERE jcs.job_id = $1
+                ORDER BY jcs.created_at ASC
+            `, [id]),
+            db.query(`
+                SELECT jcp.*, p.name as part_name, p.part_no
+                FROM job_card_parts jcp
+                LEFT JOIN parts p ON jcp.part_id = p.id
+                WHERE jcp.job_id = $1
+                ORDER BY jcp.created_at ASC
+            `, [id])
+        ]);
 
-    if (!job) return null;
+        const job = jobRes.rows[0];
+        if (!job) return null;
 
-    const servicesRes = await db.query('SELECT * FROM job_card_services WHERE job_id = $1 ORDER BY COALESCE(sort_order, 0) ASC, id ASC', [id]);
-    const partsRes = await db.query('SELECT * FROM job_card_parts WHERE job_id = $1 ORDER BY COALESCE(sort_order, 0) ASC, id ASC', [id]);
+        const allServices = servicesRes.rows;
+        const allParts = partsRes.rows;
 
-    const allServices = servicesRes.rows;
-    const allParts = partsRes.rows;
-
-    return { 
-        job, 
-        services: allServices.filter((s: any) => !s.is_future),
-        futureServices: allServices.filter((s: any) => s.is_future),
-        parts: allParts.filter((p: any) => !p.is_future),
-        futureParts: allParts.filter((p: any) => p.is_future)
-    };
+        return {
+            job,
+            services: allServices.filter((s: any) => !s.is_future),
+            futureServices: allServices.filter((s: any) => s.is_future),
+            parts: allParts.filter((p: any) => !p.is_future),
+            futureParts: allParts.filter((p: any) => p.is_future)
+        };
+    } catch (err) {
+        console.error('getJobDetails Error:', err);
+        return null;
+    }
 });
 
 export async function deleteJobCard(jobId: number) {

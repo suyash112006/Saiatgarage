@@ -79,7 +79,7 @@ export default function DownloadPDFButton({ elementSelector, filename }: Downloa
         <>
             <Script
                 src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
-                strategy="lazyOnload"
+                strategy="afterInteractive"
                 onReady={() => setScriptLoaded(true)}
             />
             

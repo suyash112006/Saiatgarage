@@ -60,17 +60,21 @@ export default async function EstimatePage(props: {
     const partsTotal = parts.reduce((sum: number, p: any) => sum + (p.price * p.quantity), 0);
     const grandTotal = servicesTotal + partsTotal;
 
-    // Format Estimate No like Invoice No: EST-YYYYMMDD-JobNo
-    // Using job creation date (or current date) in IST for consistency
+    // SMART DATE LOGIC: Ensure Estimate No always has the YYYYMMDD prefix for consistency
     const refDate = job.created_at ? new Date(job.created_at) : new Date();
     const istDateStr = new Intl.DateTimeFormat('en-IN', {
         timeZone: 'Asia/Kolkata',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
-    }).format(refDate).split('/').reverse().join(''); // Converts DD/MM/YYYY to YYYYMMDD
+    }).format(refDate).split('/').reverse().join(''); // YYYYMMDD
     
-    const estimateNo = `EST-${istDateStr}-${job.job_no || jobId}`;
+    // If job_no is for example '20260329-01', it already has the date.
+    // If job_no is just '14', we prefix it.
+    const cleanJobNo = (job.job_no || jobId).toString();
+    const estimateNo = cleanJobNo.includes('-') && cleanJobNo.length >= 11 
+        ? `EST-${cleanJobNo}` 
+        : `EST-${istDateStr}-${cleanJobNo}`;
 
 
     return (
@@ -101,7 +105,7 @@ export default async function EstimatePage(props: {
                             <div className="flex justify-between items-start mb-6 pb-6 border-b border-slate-100">
                                 <div className="text-left">
                                     <h1 className="text-4xl font-black text-slate-900 leading-none">Sai Auto Garage</h1>
-                                    {!isFirstPage && <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest italic">Continued - Estimate: Job #{jobId}</p>}
+                                    {!isFirstPage && <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest italic">Continued - Estimate #{estimateNo}</p>}
                                     {isFirstPage && <p className="text-xs font-bold text-slate-500 mt-2 uppercase tracking-[0.3em]">Servicing & Maintenance</p>}
                                 </div>
                                 {isFirstPage && (

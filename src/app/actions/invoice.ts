@@ -41,16 +41,23 @@ export async function generateInvoice(jobId: number) {
             return { error: 'Cannot generate invoice: Job has no services or parts' };
         }
 
-        // 4. Generate unique invoice number (using IST for local consistency)
-        const now = new Date();
-        const istDateStr = new Intl.DateTimeFormat('en-IN', {
-            timeZone: 'Asia/Kolkata',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        }).format(now).split('/').reverse().join(''); // Converts DD/MM/YYYY to YYYYMMDD
+        // 4. Generate unique invoice number with SMART DATE logic
+        // If job_no is e.g. '20260329-01', use it directly.
+        // If it's just '14', use current date prefix.
+        const cleanJobNo = (job.job_no || jobId).toString();
         
-        const invoiceNo = `INV-${istDateStr}-${job.job_no || jobId}`;
+        let invoiceNo = `INV-${cleanJobNo}`;
+        if (!cleanJobNo.includes('-') || cleanJobNo.length < 11) {
+            const now = new Date();
+            const istDateStr = new Intl.DateTimeFormat('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).format(now).split('/').reverse().join(''); // YYYYMMDD
+            
+            invoiceNo = `INV-${istDateStr}-${cleanJobNo}`;
+        }
 
         // 5. Create invoice and update job status
         // Postgres transaction
@@ -87,48 +94,48 @@ export async function getInvoice(invoiceId: number) {
     }
 
     try {
-        const invoiceRes = await db.query(`
-            SELECT i.id as invoice_database_id, i.invoice_no, i.job_id, i.created_at,
-                   j.*, 
-                   c.name as customer_name, c.mobile as customer_mobile, c.address as customer_address,
-                   v.model as vehicle_model, v.vehicle_number,
-                   j.km_reading
-            FROM invoices i
-            JOIN job_cards j ON i.job_id = j.id
-            JOIN vehicles v ON j.vehicle_id = v.id
-            JOIN customers c ON v.customer_id = c.id
-            WHERE i.id = $1
-        `, [invoiceId]);
+        const [invoiceRes, servicesRes, partsRes, taxSettingRes] = await Promise.all([
+            db.query(`
+                SELECT i.id as invoice_database_id, i.invoice_no, i.job_id, i.created_at,
+                       j.*, 
+                       c.name as customer_name, c.mobile as customer_mobile, c.address as customer_address,
+                       v.model as vehicle_model, v.vehicle_number,
+                       j.km_reading
+                FROM invoices i
+                JOIN job_cards j ON i.job_id = j.id
+                JOIN vehicles v ON j.vehicle_id = v.id
+                JOIN customers c ON v.customer_id = c.id
+                WHERE i.id = $1
+            `, [invoiceId]),
+            db.query(`
+                SELECT jcs.*, s.name as service_name, s.category
+                FROM job_card_services jcs
+                LEFT JOIN services s ON jcs.service_id = s.id
+                WHERE jcs.job_id = (SELECT job_id FROM invoices WHERE id = $1) 
+                  AND COALESCE(jcs.is_future, 0) = 0
+            `, [invoiceId]),
+            db.query(`
+                SELECT jcp.*, p.name as part_name, p.part_no
+                FROM job_card_parts jcp
+                LEFT JOIN parts p ON jcp.part_id = p.id
+                WHERE jcp.job_id = (SELECT job_id FROM invoices WHERE id = $1) 
+                  AND COALESCE(jcp.is_future, 0) = 0
+            `, [invoiceId]),
+            db.query("SELECT value FROM settings WHERE key = 'tax_rate'")
+        ]);
+
         const invoice = invoiceRes.rows[0];
-
         if (!invoice) return null;
-
-        const servicesRes = await db.query(`
-            SELECT jcs.*, s.name as service_name, s.category
-            FROM job_card_services jcs
-            LEFT JOIN services s ON jcs.service_id = s.id
-            WHERE jcs.job_id = $1 AND COALESCE(jcs.is_future, 0) = 0
-        `, [invoice.job_id]);
-
-        const partsRes = await db.query(`
-            SELECT jcp.*, p.name as part_name, p.part_no
-            FROM job_card_parts jcp
-            LEFT JOIN parts p ON jcp.part_id = p.id
-            WHERE jcp.job_id = $1 AND COALESCE(jcp.is_future, 0) = 0
-        `, [invoice.job_id]);
 
         const services = servicesRes.rows;
         const parts = partsRes.rows;
+        const taxValue = taxSettingRes.rows[0]?.value;
+        const taxRate = taxValue ? parseFloat(taxValue) : 18;
 
         // Calculate totals
         const servicesTotal = services.reduce((sum: number, s: any) => sum + (Number(s.price) * Number(s.quantity)), 0);
         const partsTotal = parts.reduce((sum: number, p: any) => sum + (Number(p.price) * Number(p.quantity)), 0);
         const subtotal = servicesTotal + partsTotal;
-
-        // Fetch dynamic tax rate
-        const taxSettingRes = await db.query("SELECT value FROM settings WHERE key = 'tax_rate'");
-        const taxValue = taxSettingRes.rows[0]?.value;
-        const taxRate = taxValue ? parseFloat(taxValue) : 18;
 
         const taxTotal = subtotal * (taxRate / 100);
         const grandTotal = subtotal + taxTotal;
