@@ -1,8 +1,7 @@
 import { getInvoice } from '@/app/actions/invoice';
 import { redirect } from 'next/navigation';
 import PrintInvoiceButton from '@/components/PrintInvoiceButton';
-import ShareInvoiceButton from '@/components/ShareInvoiceButton';
-import AutoDownloadPDF from '@/components/AutoDownloadPDF';
+import DownloadPDFButton from '@/components/DownloadPDFButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,15 +12,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     };
 }
 
-type SearchParams = Promise<{ download?: string }>;
-
-export default async function InvoicePage({ params, searchParams }: { 
-    params: Promise<{ id: string }>,
-    searchParams: SearchParams
+export default async function InvoicePage({ params }: { 
+    params: Promise<{ id: string }>
 }) {
     const { id } = await params;
-    const { download } = await searchParams;
-    const isDownload = download === '1';
 
     const invoice = await getInvoice(Number(id));
 
@@ -33,30 +27,38 @@ export default async function InvoicePage({ params, searchParams }: {
     const allItems = [...partsItems, ...serviceItems];
 
     // Pagination logic - reduced for safety/padding
-    const itemsPerPageFirst = 10;
-    const itemsPerPageOthers = 15;
+    const itemsPerPageFirst = 8;
+    const itemsPerPageOthers = 12;
     const pages: any[][] = [];
 
-    let currentItemIdx = 0;
-    while (currentItemIdx < allItems.length || (pages.length === 0)) {
-        const isFirstPage = pages.length === 0;
-        const limit = isFirstPage ? itemsPerPageFirst : itemsPerPageOthers;
-        const chunk = allItems.slice(currentItemIdx, currentItemIdx + limit);
-        pages.push(chunk);
-        currentItemIdx += limit;
-        if (currentItemIdx >= allItems.length) break;
+    if (allItems.length === 0) {
+        pages.push([]);
+    } else {
+        let currentIdx = 0;
+        while (currentIdx < allItems.length) {
+            const isFirst = pages.length === 0;
+            const limit = isFirst ? itemsPerPageFirst : itemsPerPageOthers;
+            const chunk = allItems.slice(currentIdx, currentIdx + limit);
+            if (chunk.length > 0) {
+                pages.push(chunk);
+            }
+            currentIdx += limit;
+        }
     }
 
     return (
         <>
             {/* Action Bar - Fixed on Screen */}
             <div className="no-print fixed top-6 right-6 z-50 flex items-center gap-3">
-                <ShareInvoiceButton invoice={invoice} />
+                <DownloadPDFButton 
+                    elementSelector=".invoice-container"
+                    filename={`${invoice.invoice_no}.pdf`}
+                />
                 <PrintInvoiceButton />
             </div>
 
             {/* Invoice Container - Optimized for A4 */}
-            <div className={`invoice-container ${isDownload ? 'force-light' : ''}`} data-theme="light">
+            <div className="invoice-container" data-theme="light">
                 {pages.map((pageItems, pageIdx) => {
                     const isFirstPage = pageIdx === 0;
                     const isLastPage = pageIdx === pages.length - 1;
@@ -71,7 +73,7 @@ export default async function InvoicePage({ params, searchParams }: {
                             {/* Header - Show full branding only on first page */}
 
                             {/* Header - Show full branding only on first page */}
-                            <div className="flex justify-between items-start mb-8 pb-6 border-b border-slate-100">
+                            <div className="flex justify-between items-start mb-6 pb-6 border-b border-slate-100">
                                 <div className="text-left">
                                     <h1 className="text-4xl font-black text-slate-900 leading-none">Sai Auto Garage</h1>
                                     {!isFirstPage && <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest italic">Continued - Invoice #{invoice.invoice_no}</p>}
@@ -88,12 +90,12 @@ export default async function InvoicePage({ params, searchParams }: {
 
                             {isFirstPage && (
                                 <>
-                                    <div className="text-left mb-8">
+                                    <div className="text-left mb-6">
                                         <h2 className="text-4xl font-black text-slate-900 tracking-[0.2em] uppercase leading-tight m-0">INVOICE</h2>
                                     </div>
 
                                     {/* Customer & Vehicle Info Table */}
-                                    <div className="mb-8 text-sm">
+                                    <div className="mb-6 text-sm">
                                         <table className="w-full border-collapse">
                                             <tbody>
                                                 <tr>
@@ -127,10 +129,10 @@ export default async function InvoicePage({ params, searchParams }: {
                             )}
 
                             {/* Line Items Container */}
-                            <div className="mb-8 min-h-[400px]">
+                            <div className="mb-6">
                                 {/* Parts Table */}
                                 {pageParts.length > 0 && (
-                                    <div className="mb-6">
+                                    <div className="mb-4">
                                         <h3 className="font-black text-slate-400 mb-2 uppercase tracking-widest border-l-2 border-primary pl-2" style={{ fontSize: '16px' }}>Parts / Materials</h3>
                                         <table className="w-full border-collapse table-fixed invoice-table">
                                             <thead>
@@ -247,7 +249,7 @@ export default async function InvoicePage({ params, searchParams }: {
                                 </>
                             )}
 
-                            <div className="mt-auto pt-8 text-[10px] text-slate-400 flex justify-between items-center no-print">
+                            <div className="mt-auto pt-8 text-[10px] text-slate-400 flex justify-between items-center">
                                 <span>Sai Auto Garage | INVOICE</span>
                                 <span>Page {pageIdx + 1} of {pages.length}</span>
                             </div>
@@ -256,12 +258,6 @@ export default async function InvoicePage({ params, searchParams }: {
                 })}
             </div>
 
-            {isDownload && (
-                <AutoDownloadPDF 
-                    elementSelector=".invoice-container" 
-                    filename={`Invoice_${invoice.invoice_no}.pdf`}
-                />
-            )}
         </>
     );
 }

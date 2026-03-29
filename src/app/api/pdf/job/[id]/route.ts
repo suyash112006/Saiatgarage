@@ -62,7 +62,7 @@ export async function GET(request: Request, props: { params: Params }) {
         await browser.close();
 
         // Return the actual file as a download
-        return new NextResponse(pdfBuffer, {
+        return new NextResponse(pdfBuffer as any, {
             status: 200,
             headers: {
                 'Content-Type': 'application/pdf',

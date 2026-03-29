@@ -41,10 +41,16 @@ export async function generateInvoice(jobId: number) {
             return { error: 'Cannot generate invoice: Job has no services or parts' };
         }
 
-        // 4. Generate unique invoice number
+        // 4. Generate unique invoice number (using IST for local consistency)
         const now = new Date();
-        const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
-        const invoiceNo = `INV-${dateStr}-${job.job_no || jobId}`;
+        const istDateStr = new Intl.DateTimeFormat('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(now).split('/').reverse().join(''); // Converts DD/MM/YYYY to YYYYMMDD
+        
+        const invoiceNo = `INV-${istDateStr}-${job.job_no || jobId}`;
 
         // 5. Create invoice and update job status
         // Postgres transaction
@@ -101,14 +107,14 @@ export async function getInvoice(invoiceId: number) {
             SELECT jcs.*, s.name as service_name, s.category
             FROM job_card_services jcs
             LEFT JOIN services s ON jcs.service_id = s.id
-            WHERE jcs.job_id = $1
+            WHERE jcs.job_id = $1 AND COALESCE(jcs.is_future, 0) = 0
         `, [invoice.job_id]);
 
         const partsRes = await db.query(`
             SELECT jcp.*, p.name as part_name, p.part_no
             FROM job_card_parts jcp
             LEFT JOIN parts p ON jcp.part_id = p.id
-            WHERE jcp.job_id = $1
+            WHERE jcp.job_id = $1 AND COALESCE(jcp.is_future, 0) = 0
         `, [invoice.job_id]);
 
         const services = servicesRes.rows;

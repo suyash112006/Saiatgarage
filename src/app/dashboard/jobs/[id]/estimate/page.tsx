@@ -2,8 +2,7 @@ import { getJobDetails } from '@/app/actions/job';
 import { getSession } from '@/app/actions/auth';
 import { notFound, redirect } from 'next/navigation';
 import PrintInvoiceButton from '@/components/PrintInvoiceButton';
-import ShareInvoiceButton from '@/components/ShareInvoiceButton';
-import AutoDownloadPDF from '@/components/AutoDownloadPDF';
+import DownloadPDFButton from '@/components/DownloadPDFButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,16 +13,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     };
 }
 
-type SearchParams = Promise<{ download?: string }>;
-
 export default async function EstimatePage(props: { 
-    params: Promise<{ id: string }>,
-    searchParams: SearchParams
+    params: Promise<{ id: string }>
 }) {
     const params = await props.params;
-    const searchParams = await props.searchParams;
-    const isDownload = searchParams.download === '1';
-
     const jobId = parseInt(params.id);
     const session = await getSession();
 
@@ -43,18 +36,23 @@ export default async function EstimatePage(props: {
     const allItems = [...partsItems, ...serviceItems];
 
     // Pagination logic - reduced for safety/padding
-    const itemsPerPageFirst = 10;
-    const itemsPerPageOthers = 15;
+    const itemsPerPageFirst = 8;
+    const itemsPerPageOthers = 12;
     const pages: any[][] = [];
 
-    let currentItemIdx = 0;
-    while (currentItemIdx < allItems.length || pages.length === 0) {
-        const isFirstPage = pages.length === 0;
-        const limit = isFirstPage ? itemsPerPageFirst : itemsPerPageOthers;
-        const chunk = allItems.slice(currentItemIdx, currentItemIdx + limit);
-        pages.push(chunk);
-        currentItemIdx += limit;
-        if (currentItemIdx >= allItems.length) break;
+    if (allItems.length === 0) {
+        pages.push([]);
+    } else {
+        let currentIdx = 0;
+        while (currentIdx < allItems.length) {
+            const isFirst = pages.length === 0;
+            const limit = isFirst ? itemsPerPageFirst : itemsPerPageOthers;
+            const chunk = allItems.slice(currentIdx, currentIdx + limit);
+            if (chunk.length > 0) {
+                pages.push(chunk);
+            }
+            currentIdx += limit;
+        }
     }
 
     // Calculate totals
@@ -62,24 +60,30 @@ export default async function EstimatePage(props: {
     const partsTotal = parts.reduce((sum: number, p: any) => sum + (p.price * p.quantity), 0);
     const grandTotal = servicesTotal + partsTotal;
 
-    // Prepare share data
-    const shareInvoice = {
-        id: job.id,
-        job_id: job.id,
-        invoice_no: `EST-${job.job_no || job.id}`,
-        customer_name: job.customer_name,
-        customer_mobile: job.mobile,
-        grandTotal: grandTotal
-    };
+    // Format Estimate No like Invoice No: EST-YYYYMMDD-JobNo
+    // Using job creation date (or current date) in IST for consistency
+    const refDate = job.created_at ? new Date(job.created_at) : new Date();
+    const istDateStr = new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(refDate).split('/').reverse().join(''); // Converts DD/MM/YYYY to YYYYMMDD
+    
+    const estimateNo = `EST-${istDateStr}-${job.job_no || jobId}`;
+
 
     return (
         <>
             <div className="no-print fixed top-6 right-6 z-50 flex items-center gap-3">
-                <ShareInvoiceButton invoice={shareInvoice} />
+                <DownloadPDFButton 
+                    elementSelector=".invoice-container"
+                    filename={`${estimateNo}.pdf`}
+                />
                 <PrintInvoiceButton />
             </div>
 
-            <div className={`invoice-container ${isDownload ? 'force-light' : ''}`} data-theme="light">
+            <div className="invoice-container" data-theme="light">
                 {pages.map((pageItems, pageIdx) => {
                     const isFirstPage = pageIdx === 0;
                     const isLastPage = pageIdx === pages.length - 1;
@@ -94,7 +98,7 @@ export default async function EstimatePage(props: {
                             {/* Header - Show full branding only on first page */}
 
                             {/* Header - Show full branding only on first page */}
-                            <div className="flex justify-between items-start mb-8 pb-6 border-b border-slate-100">
+                            <div className="flex justify-between items-start mb-6 pb-6 border-b border-slate-100">
                                 <div className="text-left">
                                     <h1 className="text-4xl font-black text-slate-900 leading-none">Sai Auto Garage</h1>
                                     {!isFirstPage && <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest italic">Continued - Estimate: Job #{jobId}</p>}
@@ -111,13 +115,13 @@ export default async function EstimatePage(props: {
 
                             {isFirstPage && (
                                 <>
-                                    <div className="text-left mb-8 flex flex-col items-start">
+                                    <div className="text-left mb-6 flex flex-col items-start">
                                         <h2 className="text-4xl font-black text-slate-900 tracking-[0.2em] uppercase leading-tight m-0">ESTIMATE</h2>
                                         <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">(Proforma Invoice / Subject to changes)</p>
                                     </div>
 
-                                    {/* Customer & Vehicle Info */}
-                                    <div className="mb-8 text-sm">
+                                    {/* Customer & Vehicle Info Table */}
+                                    <div className="mb-6 text-sm">
                                         <table className="w-full border-collapse">
                                             <tbody>
                                                 <tr>
@@ -125,6 +129,12 @@ export default async function EstimatePage(props: {
                                                     <td className="py-2 font-semibold text-slate-900">{job.customer_name}</td>
                                                     <td className="py-2 pr-3 text-slate-600 font-medium w-[95px]">Vehicle No :</td>
                                                     <td className="py-2 font-semibold text-slate-900">{job.vehicle_number}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td className="py-2 pr-3 text-slate-600 font-medium">Address :</td>
+                                                    <td className="py-2 text-slate-700">{job.address || '—'}</td>
+                                                    <td className="py-2 pr-3 text-slate-600 font-medium w-[95px]">Kilometers :</td>
+                                                    <td className="py-2 text-slate-700">{job.km_reading ? job.km_reading.toLocaleString() : '—'}</td>
                                                 </tr>
                                                 <tr>
                                                     <td className="py-2 pr-3 text-slate-600 font-medium">Contact No :</td>
@@ -135,8 +145,8 @@ export default async function EstimatePage(props: {
                                                 <tr>
                                                     <td className="py-2 pr-3 text-slate-600 font-medium">Date :</td>
                                                     <td className="py-2 text-slate-700">{new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
-                                                    <td className="py-2 pr-3 text-slate-600 font-medium w-[95px]">Kilometers :</td>
-                                                    <td className="py-2 text-slate-700">{job.km_reading ? job.km_reading.toLocaleString() : '—'}</td>
+                                                    <td className="py-2 pr-3 text-slate-600 font-medium w-[95px]">Estimate No :</td>
+                                                    <td className="py-2 font-bold text-slate-900">{estimateNo}</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -145,10 +155,10 @@ export default async function EstimatePage(props: {
                             )}
 
                             {/* Line Items Container */}
-                            <div className="mb-8 min-h-[400px]">
+                            <div className="mb-6">
                                 {/* Parts Table */}
                                 {pageParts.length > 0 && (
-                                    <div className="mb-6">
+                                    <div className="mb-4">
                                         <h3 className="font-black text-slate-400 mb-2 uppercase tracking-widest border-l-2 border-primary pl-2" style={{ fontSize: '16px' }}>Parts / Materials</h3>
                                         <table className="w-full border-collapse table-fixed invoice-table">
                                             <thead>
@@ -215,10 +225,7 @@ export default async function EstimatePage(props: {
                                     </div>
                                 )}
 
-                                {/* Filler rows for spatial consistency */}
-                                {pageItems.length < 3 && Array.from({ length: 3 - pageItems.length }).map((_, i) => (
-                                    <div key={`filler-${i}`} className="py-8">&nbsp;</div>
-                                ))}
+                                {/* filler space removed to avoid extra pages */}
                             </div>
 
                             {isLastPage && (
@@ -229,7 +236,7 @@ export default async function EstimatePage(props: {
                                             <tbody>
                                                 <tr>
                                                     <td className="text-left text-slate-600 pb-2 font-medium">Estimated Parts Total</td>
-                                                    <td className="text-right font-semibold text-slate-900 pb-2 px-2" style={{ width: '140px' }}>
+                                                    <td className="text-right font-semibold text-slate-900 pb-2 px-2" style={{ width: '120px' }}>
                                                         ₹ {Number(partsTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </td>
                                                 </tr>
@@ -266,7 +273,7 @@ export default async function EstimatePage(props: {
                                 </>
                             )}
 
-                            <div className="mt-auto pt-8 text-[10px] text-slate-400 flex justify-between items-center no-print">
+                            <div className="mt-auto pt-8 text-[10px] text-slate-400 flex justify-between items-center">
                                 <span>Sai Auto Garage | ESTIMATE</span>
                                 <span>Page {pageIdx + 1} of {pages.length}</span>
                             </div>
@@ -275,12 +282,6 @@ export default async function EstimatePage(props: {
                 })}
             </div>
 
-            {isDownload && (
-                <AutoDownloadPDF 
-                    elementSelector=".invoice-container" 
-                    filename={`Estimate_${job.job_no || job.id}.pdf`}
-                />
-            )}
         </>
     );
 }
