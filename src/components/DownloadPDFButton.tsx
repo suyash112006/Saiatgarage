@@ -1,7 +1,7 @@
 'use client';
 
 import { Download, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Script from 'next/script';
 
 interface DownloadPDFButtonProps {
@@ -12,6 +12,14 @@ interface DownloadPDFButtonProps {
 export default function DownloadPDFButton({ elementSelector, filename }: DownloadPDFButtonProps) {
     const [isGenerating, setIsGenerating] = useState(false);
     const [scriptLoaded, setScriptLoaded] = useState(false);
+
+    // Effect to check if script is already loaded (handles client-side navigation)
+    useEffect(() => {
+        // @ts-expect-error - html2pdf is a global variable
+        if (typeof window !== 'undefined' && typeof window.html2pdf !== 'undefined') {
+            setScriptLoaded(true);
+        }
+    }, []);
 
     const handleDownload = async () => {
         if (!scriptLoaded) return;
@@ -70,7 +78,7 @@ export default function DownloadPDFButton({ elementSelector, filename }: Downloa
             <Script
                 src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
                 strategy="lazyOnload"
-                onLoad={() => setScriptLoaded(true)}
+                onReady={() => setScriptLoaded(true)}
             />
             
             <button
