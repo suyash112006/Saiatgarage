@@ -31,22 +31,22 @@ export default function DownloadPDFButton({ elementSelector, filename }: Downloa
         element.setAttribute('data-theme', 'light');
         element.classList.add('force-light', 'pdf-capture');
 
-        // Give the browser a moment to repaint
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Scroll to top for html2canvas to work correctly
+        window.scrollTo(0, 0);
 
         const opt = {
             margin: 0,
             filename: filename,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { 
-                scale: 3, 
+                scale: 2, // 3 is sometimes too heavy for mobile/low-memory
                 useCORS: true, 
                 logging: false,
                 letterRendering: true,
                 backgroundColor: '#ffffff'
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            pagebreak: { mode: ['css', 'legacy'], before: '.page-break', avoid: '.invoice-page' }
         };
 
         // @ts-expect-error - html2pdf is loaded from a script tag
