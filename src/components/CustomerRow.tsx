@@ -32,7 +32,7 @@ export function CustomerRow({ customer, index, isAdmin }: CustomerRowProps) {
             }}
         >
             <td className="text-slate-400 font-mono text-[10px] font-bold w-8 pl-4">
-                {String(index + 1).padStart(2, '0')}
+                {String(customer.customer_no || customer.id).padStart(2, '0')}
             </td>
             <td>
                 <div className="name-cell">

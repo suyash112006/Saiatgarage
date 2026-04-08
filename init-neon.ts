@@ -38,6 +38,7 @@ async function initNeon() {
             name TEXT NOT NULL,
             mobile TEXT UNIQUE NOT NULL,
             address TEXT,
+            customer_no INTEGER UNIQUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`,
 

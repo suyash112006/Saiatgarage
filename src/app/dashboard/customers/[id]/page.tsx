@@ -1,11 +1,14 @@
 import { Suspense } from 'react';
 import CustomerViewWrapper from '@/components/CustomerViewWrapper';
 import Link from 'next/link';
+import { getCustomerDetails } from '@/app/actions/vehicle';
 
 type Params = Promise<{ id: string }>;
 
 export default async function CustomerDetailPage(props: { params: Params }) {
     const params = await props.params;
+    const data: any = await getCustomerDetails(params.id);
+    const displayId = data?.customer?.customer_no || params.id;
 
     return (
         <div className="dashboard-container">
@@ -14,7 +17,7 @@ export default async function CustomerDetailPage(props: { params: Params }) {
                 <span className="breadcrumb-separator" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>/</span>
                 <Link href="/dashboard/customers" className="breadcrumb-item" style={{ color: 'var(--text-muted)' }}>Customers</Link>
                 <span className="breadcrumb-separator" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>/</span>
-                <span className="breadcrumb-item active" style={{ color: 'var(--primary)' }}>{params.id}</span>
+                <span className="breadcrumb-item active" style={{ color: 'var(--primary)' }}>{displayId}</span>
             </nav>
 
             <Suspense fallback={<div className="p-10 text-center text-muted">Loading customer details...</div>}>

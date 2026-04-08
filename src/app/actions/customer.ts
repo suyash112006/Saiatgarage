@@ -23,11 +23,15 @@ export async function createCustomer(formData: FormData) {
     const dbMobile = mobile?.trim() || null;
 
     try {
+        // Get next Customer No
+        const lastCustRes = await db.query('SELECT MAX(customer_no) as last_no FROM customers');
+        const nextNo = (lastCustRes.rows[0]?.last_no || 0) + 1;
+
         const res = await db.query(`
-            INSERT INTO customers (name, mobile, address)
-            VALUES ($1, $2, $3)
+            INSERT INTO customers (name, mobile, address, customer_no)
+            VALUES ($1, $2, $3, $4)
             RETURNING id
-        `, [name, dbMobile, address]);
+        `, [name, dbMobile, address, nextNo]);
 
         revalidatePath('/dashboard/customers');
         await createNotification(`New Customer Added: ${name}`, 'CUSTOMER', res.rows[0].id);

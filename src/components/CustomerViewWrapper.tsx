@@ -27,7 +27,7 @@ export default async function CustomerViewWrapper({ customerId }: CustomerViewWr
                     <div className="flex items-center gap-3 text-sm mt-1">
                         <div className="flex items-center gap-2 px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider" style={{ background: 'rgba(var(--text-main-rgb, 0,0,0), 0.05)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
                             <User size={14} style={{ color: 'var(--text-muted)' }} />
-                            UID: {customer.id}
+                            UID: {customer.customer_no || customer.id}
                         </div>
                     </div>
                 </div>
