@@ -50,7 +50,7 @@ export default function CustomerTable({ initialCustomers, isAdmin }: CustomerTab
                 <table className="data-table">
                     <thead>
                         <tr>
-                            <th className="w-8 pl-4">#</th>
+                            <th className="w-12 pl-4">#</th>
                             <th>Name</th>
                             <th>Mobile</th>
                             <th>Address</th>

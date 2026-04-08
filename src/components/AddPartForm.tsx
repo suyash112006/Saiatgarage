@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, Minus, X, Search, Check, Cpu, Loader2, Package, AlertTriangle, ShoppingCart } from 'lucide-react';
+import { Plus, Minus, X, Search, Check, Cpu, Loader2, Package, AlertTriangle, ShoppingCart, Pencil } from 'lucide-react';
 import { addJobParts } from '@/app/actions/job';
 import { toast } from 'sonner';
 
@@ -62,7 +62,7 @@ export default function AddPartForm({ jobId, masterParts, isAdmin }: AddPartForm
                 toast.error(`"${part.name}" is out of stock`);
                 return;
             }
-            setSelectedParts(prev => [...prev, { ...part, quantity: 1 }]);
+            setSelectedParts(prev => [...prev, { ...part, quantity: 1, customPrice: part.unit_price, syncMaster: false, isEditingPrice: false }]);
         }
     };
 
@@ -80,12 +80,44 @@ export default function AddPartForm({ jobId, masterParts, isAdmin }: AddPartForm
         }));
     };
 
+    const updatePartPrice = (partId: number, price: number) => {
+        setSelectedParts(prev => prev.map(p => {
+            if (p.id === partId) {
+                return { ...p, customPrice: price };
+            }
+            return p;
+        }));
+    };
+
+    const togglePriceEdit = (partId: number) => {
+        setSelectedParts(prev => prev.map(p => {
+            if (p.id === partId) {
+                return { ...p, isEditingPrice: !p.isEditingPrice };
+            }
+            return { ...p, isEditingPrice: false };
+        }));
+    };
+
+    const toggleSyncMaster = (partId: number) => {
+        setSelectedParts(prev => prev.map(p => {
+            if (p.id === partId) {
+                return { ...p, syncMaster: !p.syncMaster };
+            }
+            return p;
+        }));
+    };
+
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         if (selectedParts.length === 0) return;
         setLoading(true);
         try {
-            const res = await addJobParts(jobId, selectedParts.map(p => ({ id: p.id, quantity: p.quantity || 1 })));
+            const res = await addJobParts(jobId, selectedParts.map(p => ({ 
+                id: p.id, 
+                quantity: p.quantity || 1,
+                price: p.customPrice,
+                syncMaster: p.syncMaster
+            })));
             if (res.success) {
                 toast.success(`${selectedParts.length} part${selectedParts.length > 1 ? 's' : ''} added`);
                 handleClose();
@@ -356,13 +388,44 @@ export default function AddPartForm({ jobId, masterParts, isAdmin }: AddPartForm
                                                 </div>
                                             )}
 
-                                            {/* Right info */}
-                                            <div style={{ textAlign: 'right' }}>
+                                             {/* Right info */}
+                                            <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                                                 {isAdmin && (
-                                                    <div style={{ fontSize: '13px', fontWeight: 800, color: isSelected ? 'var(--primary)' : 'var(--text-muted)' }}>
-                                                        ₹{p.unit_price}
+                                                    <div 
+                                                        onClick={(e) => { e.stopPropagation(); togglePriceEdit(p.id); }}
+                                                        style={{ 
+                                                            display: 'flex', alignItems: 'center', gap: '6px', 
+                                                            cursor: 'pointer', padding: '4px 8px', borderRadius: '6px',
+                                                            background: selItem?.isEditingPrice ? 'rgba(59,130,246,0.1)' : 'transparent',
+                                                            transition: 'all 0.15s',
+                                                            border: selItem?.isEditingPrice ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent'
+                                                        }}
+                                                    >
+                                                        {!selItem?.isEditingPrice && <Pencil size={11} style={{ opacity: 0.5 }} />}
+                                                        {selItem?.isEditingPrice ? (
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)' }}>₹</span>
+                                                                <input
+                                                                    autoFocus
+                                                                    type="number"
+                                                                    value={selItem.customPrice}
+                                                                    onChange={(e) => updatePartPrice(p.id, Number(e.target.value))}
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    style={{
+                                                                        width: '60px', border: 'none', background: 'transparent',
+                                                                        fontSize: '13px', fontWeight: 800, color: '#3b82f6',
+                                                                        outline: 'none', padding: 0
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{ fontSize: '13px', fontWeight: 800, color: isSelected ? '#3b82f6' : 'var(--text-main)' }}>
+                                                                ₹{selItem ? selItem.customPrice : p.unit_price}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
+
                                                 <div style={{
                                                     fontSize: '10px', fontWeight: 700,
                                                     color: outOfStock ? '#ef4444' : p.stock_quantity < 5 ? '#f59e0b' : 'var(--primary)',
@@ -371,6 +434,25 @@ export default function AddPartForm({ jobId, masterParts, isAdmin }: AddPartForm
                                                     {outOfStock && <AlertTriangle size={9} />}
                                                     {outOfStock ? 'OUT OF STOCK' : `${p.stock_quantity} in stock`}
                                                 </div>
+
+                                                {isSelected && selItem?.isEditingPrice && (
+                                                    <div 
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}
+                                                    >
+                                                        <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                                                            <input 
+                                                                type="checkbox" 
+                                                                checked={selItem.syncMaster}
+                                                                onChange={() => toggleSyncMaster(p.id)}
+                                                                style={{ width: '12px', height: '12px', cursor: 'pointer' }}
+                                                            />
+                                                            <span style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+                                                                Update Master
+                                                            </span>
+                                                        </label>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

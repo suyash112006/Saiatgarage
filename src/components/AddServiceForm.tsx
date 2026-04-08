@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, Minus, X, Search, Check, Wrench, Loader2, Zap, ChevronRight, ShoppingCart } from 'lucide-react';
+import { Plus, Minus, X, Search, Check, Wrench, Loader2, Zap, ChevronRight, ShoppingCart, Pencil } from 'lucide-react';
 import { addJobServices } from '@/app/actions/job';
 import { toast } from 'sonner';
 
@@ -85,7 +85,7 @@ export default function AddServiceForm({ jobId, masterServices, isAdmin }: AddSe
         if (selectedServices.find(s => s.id === service.id)) {
             setSelectedServices(prev => prev.filter(s => s.id !== service.id));
         } else {
-            setSelectedServices(prev => [...prev, { ...service, quantity: 1 }]);
+            setSelectedServices(prev => [...prev, { ...service, quantity: 1, customPrice: service.base_price, syncMaster: false, isEditingPrice: false }]);
         }
     };
 
@@ -98,12 +98,44 @@ export default function AddServiceForm({ jobId, masterServices, isAdmin }: AddSe
         }));
     };
 
+    const updateServicePrice = (serviceId: number, price: number) => {
+        setSelectedServices(prev => prev.map(s => {
+            if (s.id === serviceId) {
+                return { ...s, customPrice: price };
+            }
+            return s;
+        }));
+    };
+
+    const togglePriceEdit = (serviceId: number) => {
+        setSelectedServices(prev => prev.map(s => {
+            if (s.id === serviceId) {
+                return { ...s, isEditingPrice: !s.isEditingPrice };
+            }
+            return { ...s, isEditingPrice: false };
+        }));
+    };
+
+    const toggleSyncMaster = (serviceId: number) => {
+        setSelectedServices(prev => prev.map(s => {
+            if (s.id === serviceId) {
+                return { ...s, syncMaster: !s.syncMaster };
+            }
+            return s;
+        }));
+    };
+
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         if (selectedServices.length === 0) return;
         setLoading(true);
         try {
-            const res = await addJobServices(jobId, selectedServices.map(s => ({ id: s.id, quantity: s.quantity || 1 })));
+            const res = await addJobServices(jobId, selectedServices.map(s => ({ 
+                id: s.id, 
+                quantity: s.quantity || 1, 
+                price: s.customPrice,
+                syncMaster: s.syncMaster 
+            })));
             if (res.success) {
                 toast.success(`${selectedServices.length} service${selectedServices.length > 1 ? 's' : ''} added`);
                 handleClose();
@@ -408,15 +440,65 @@ export default function AddServiceForm({ jobId, masterServices, isAdmin }: AddSe
                                                             </div>
                                                         )}
 
-                                                        {/* Price */}
+                                                         {/* Price */}
                                                         {isAdmin && (
-                                                            <span style={{
-                                                                fontSize: '13px', fontWeight: 800,
-                                                                color: isSelected ? '#3b82f6' : 'var(--text-muted)',
-                                                                minWidth: '50px', textAlign: 'right',
-                                                            }}>
-                                                                ₹{s.base_price}
-                                                            </span>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                                                <div 
+                                                                    onClick={(e) => { e.stopPropagation(); togglePriceEdit(s.id); }}
+                                                                    style={{ 
+                                                                        display: 'flex', alignItems: 'center', gap: '6px', 
+                                                                        cursor: 'pointer', padding: '4px 8px', borderRadius: '6px',
+                                                                        background: selItem?.isEditingPrice ? 'rgba(59,130,246,0.1)' : 'transparent',
+                                                                        transition: 'all 0.15s',
+                                                                        border: selItem?.isEditingPrice ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent'
+                                                                    }}
+                                                                >
+                                                                    {!selItem?.isEditingPrice && <Pencil size={11} style={{ opacity: 0.5 }} />}
+                                                                    {selItem?.isEditingPrice ? (
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                            <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)' }}>₹</span>
+                                                                            <input
+                                                                                autoFocus
+                                                                                type="number"
+                                                                                value={selItem.customPrice}
+                                                                                onChange={(e) => updateServicePrice(s.id, Number(e.target.value))}
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                style={{
+                                                                                    width: '60px', border: 'none', background: 'transparent',
+                                                                                    fontSize: '13px', fontWeight: 800, color: '#3b82f6',
+                                                                                    outline: 'none', padding: 0
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <span style={{
+                                                                            fontSize: '13px', fontWeight: 800,
+                                                                            color: isSelected ? '#3b82f6' : 'var(--text-muted)',
+                                                                        }}>
+                                                                            ₹{selItem ? selItem.customPrice : s.base_price}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+
+                                                                {isSelected && selItem?.isEditingPrice && (
+                                                                    <div 
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                        style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}
+                                                                    >
+                                                                        <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                                                                            <input 
+                                                                                type="checkbox" 
+                                                                                checked={selItem.syncMaster}
+                                                                                onChange={() => toggleSyncMaster(s.id)}
+                                                                                style={{ width: '12px', height: '12px', cursor: 'pointer' }}
+                                                                            />
+                                                                            <span style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+                                                                                Update Master
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </div>

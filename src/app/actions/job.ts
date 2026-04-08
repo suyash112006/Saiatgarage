@@ -338,7 +338,7 @@ export async function addJobService(formData: FormData) {
     }
 }
 
-export async function addJobServices(jobId: number, services: { id: number, quantity: number }[]) {
+export async function addJobServices(jobId: number, services: { id: number, quantity: number, price?: number, syncMaster?: boolean }[]) {
     const session = await getSession();
     if (!session) return { error: 'Unauthorized' };
 
@@ -349,9 +349,11 @@ export async function addJobServices(jobId: number, services: { id: number, quan
     try {
         console.log(`[ACTION] addJobServices started for Job:${jobId}, Services Count:${services.length}`);
 
+        const isAdmin = session.role === 'admin';
+
         // Process each service
         for (const item of services) {
-            const { id: serviceId, quantity } = item;
+            const { id: serviceId, quantity, price, syncMaster } = item;
             const checkRes = await db.query(`
                 SELECT s.name, s.base_price, jcs.id as existing_id
                 FROM services s
@@ -361,15 +363,21 @@ export async function addJobServices(jobId: number, services: { id: number, quan
 
             if (checkRes.rowCount === 0) continue;
             
-            const { name: serviceName, base_price: price, existing_id: existingId } = checkRes.rows[0];
+            const { name: serviceName, base_price: defaultPrice, existing_id: existingId } = checkRes.rows[0];
+            const finalPrice = price !== undefined ? price : defaultPrice;
 
             if (existingId) {
-                await db.query('UPDATE job_card_services SET quantity = quantity + $1, price = $2 WHERE id = $3', [quantity, price, existingId]);
+                await db.query('UPDATE job_card_services SET quantity = quantity + $1, price = $2 WHERE id = $3', [quantity, finalPrice, existingId]);
             } else {
                 await db.query(`
                     INSERT INTO job_card_services (job_id, service_id, service_name, price, quantity)
                     VALUES ($1, $2, $3, $4, $5)
-                `, [jobId, serviceId, serviceName, price, quantity]);
+                `, [jobId, serviceId, serviceName, finalPrice, quantity]);
+            }
+
+            // Sync to Master Catalog if requested
+            if (syncMaster && isAdmin && price !== undefined) {
+                await db.query('UPDATE services SET base_price = $1 WHERE id = $2', [price, serviceId]);
             }
         }
 
@@ -515,7 +523,7 @@ export async function addJobPart(formData: FormData) {
     }
 }
 
-export async function addJobParts(jobId: number, parts: { id: number, quantity: number }[]) {
+export async function addJobParts(jobId: number, parts: { id: number, quantity: number, price?: number, syncMaster?: boolean }[]) {
     const session = await getSession();
     if (!session) return { error: 'Unauthorized' };
 
@@ -526,8 +534,10 @@ export async function addJobParts(jobId: number, parts: { id: number, quantity: 
     try {
         console.log(`[ACTION] addJobParts started for Job:${jobId}, Parts Count:${parts.length}`);
 
+        const isAdmin = session.role === 'admin';
+
         for (const item of parts) {
-            const { id: partId, quantity } = item;
+            const { id: partId, quantity, price, syncMaster } = item;
             const checkRes = await db.query(`
                 SELECT p.name, p.part_no, p.unit_price, p.stock_quantity, jcp.id as existing_id
                 FROM parts p
@@ -537,7 +547,8 @@ export async function addJobParts(jobId: number, parts: { id: number, quantity: 
 
             if (checkRes.rowCount === 0) continue;
             
-            const { name: partName, part_no: partNo, unit_price: price, stock_quantity: stock, existing_id: existingId } = checkRes.rows[0];
+            const { name: partName, part_no: partNo, unit_price: defaultPrice, stock_quantity: stock, existing_id: existingId } = checkRes.rows[0];
+            const finalPrice = price !== undefined ? price : defaultPrice;
 
             if (stock < quantity) {
                 console.warn(`[ACTION] Part ${partName} out of stock or insufficient. Skipping.`);
@@ -546,13 +557,18 @@ export async function addJobParts(jobId: number, parts: { id: number, quantity: 
 
             if (existingId) {
                 console.log(`[ACTION] Updating existing part entry: ${existingId}`);
-                await db.query('UPDATE job_card_parts SET quantity = quantity + $1, price = $2 WHERE id = $3', [quantity, price, existingId]);
+                await db.query('UPDATE job_card_parts SET quantity = quantity + $1, price = $2 WHERE id = $3', [quantity, finalPrice, existingId]);
             } else {
                 console.log(`[ACTION] Inserting new part entry`);
                 await db.query(`
                     INSERT INTO job_card_parts (job_id, part_id, part_name, part_no, price, quantity)
                     VALUES ($1, $2, $3, $4, $5, $6)
-                `, [jobId, partId, partName, partNo, price, quantity]);
+                `, [jobId, partId, partName, partNo, finalPrice, quantity]);
+            }
+
+            // Sync to Master Catalog if requested
+            if (syncMaster && isAdmin && price !== undefined) {
+                await db.query('UPDATE parts SET unit_price = $1 WHERE id = $2', [price, partId]);
             }
 
             // Deduct stock

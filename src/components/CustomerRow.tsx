@@ -31,8 +31,8 @@ export function CustomerRow({ customer, index, isAdmin }: CustomerRowProps) {
                 router.push(`/dashboard/customers/${customer.id}`);
             }}
         >
-            <td className="text-slate-400 font-mono text-[10px] font-bold w-8 pl-4">
-                {String(customer.customer_no || customer.id).padStart(2, '0')}
+            <td className="text-slate-400 font-mono text-[9px] font-bold w-12 pl-4 whitespace-nowrap uppercase tracking-tighter">
+                UID: {customer.customer_no || customer.id}
             </td>
             <td>
                 <div className="name-cell">
