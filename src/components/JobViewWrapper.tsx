@@ -17,6 +17,9 @@ import AddPartForm from '@/components/AddPartForm';
 import SortableItemList from '@/components/SortableItemList';
 import CollapsibleSection from '@/components/CollapsibleSection';
 import JobActionsFooter from '@/components/JobActionsFooter';
+import JobItemsSections from '@/components/JobItemsSections';
+import EditJobButton from '@/components/EditJobButton';
+import db from '@/lib/db';
 
 interface JobViewWrapperProps {
     jobId: number;
@@ -40,6 +43,15 @@ export default async function JobViewWrapper({ jobId }: JobViewWrapperProps) {
 
     // Mechanics are locked out if job is billed or completed. Admins are never locked out.
     const isLocked = !isAdmin && (job.status === 'BILLED' || job.status === 'COMPLETED');
+
+    // Fetch car library for brand/model dropdowns in Edit Modal
+    const libraryRes = await db.query(`
+        SELECT m.name as model, b.name as brand 
+        FROM vehicle_models m 
+        JOIN vehicle_brands b ON m.brand_id = b.id 
+        ORDER BY b.name, m.name
+    `);
+    const carLibrary = libraryRes.rows as { brand: string, model: string }[];
 
     return (
         <>
@@ -95,10 +107,7 @@ export default async function JobViewWrapper({ jobId }: JobViewWrapperProps) {
 
                     {!isLocked && (
                         <div className="flex gap-2">
-                            <Link href={`/dashboard/jobs/${job.id}/edit`} className="btn btn-outline border-slate-200 shadow-sm rounded-xl px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-2 text-sm font-bold" >
-                                <Pencil size={18} />
-                                <span className="hidden md:inline">Edit Info</span>
-                            </Link >
+                            <EditJobButton job={job} mechanics={mechanics} isLocked={isLocked} carLibrary={carLibrary} />
                         </div >
                     )}
 
@@ -176,14 +185,14 @@ export default async function JobViewWrapper({ jobId }: JobViewWrapperProps) {
                                 <label className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Mobile Number</label>
                                 <div className="flex items-center gap-3 p-3 border rounded-xl" style={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border)' }}>
                                     <Phone size={16} style={{ color: 'var(--text-muted)' }} />
-                                    <span className="font-bold text-sm" style={{ color: 'var(--text-main)' }}>{job.mobile || '—'}</span>
+                                    <span className="font-bold text-sm" style={{ color: 'var(--text-main)' }}>{job.customer_mobile || '—'}</span>
                                 </div>
                             </div>
                             <div className="form-field col-span-2">
                                 <label className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Address</label>
                                 <div className="flex items-start gap-3 p-3 border rounded-xl" style={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border)' }}>
                                     <MapPin size={16} style={{ color: 'var(--text-muted)', marginTop: '2px' }} />
-                                    <span className="font-bold text-sm" style={{ color: 'var(--text-main)' }}>{job.address || '—'}</span>
+                                    <span className="font-bold text-sm" style={{ color: 'var(--text-main)' }}>{job.customer_address || '—'}</span>
                                 </div>
                             </div>
                         </div>
@@ -191,9 +200,9 @@ export default async function JobViewWrapper({ jobId }: JobViewWrapperProps) {
 
                     <CollapsibleSection title="Vehicle Details" icon={<Car className="w-[18px] h-[18px] md:w-[22px] md:h-[22px] text-primary" />}>
                         {(() => {
-                            const modelParts = (job.model || '').split(' ');
+                            const modelParts = (job.vehicle_model || '').split(' ');
                             const brand = modelParts.length > 1 ? modelParts[0] : '—';
-                            const modelName = modelParts.length > 1 ? modelParts.slice(1).join(' ') : job.model || '—';
+                            const modelName = modelParts.length > 1 ? modelParts.slice(1).join(' ') : job.vehicle_model || '—';
                             return (
                                 <div className="form-grid">
                                     <div className="form-field">
@@ -263,27 +272,17 @@ export default async function JobViewWrapper({ jobId }: JobViewWrapperProps) {
                         </div>
                     </CollapsibleSection>
 
-                    <CollapsibleSection title="Services & Labour" icon={<Settings className="w-[18px] h-[18px] md:w-[22px] md:h-[22px] text-primary" />}>
-                        <div className="flex justify-end mb-4">{!isLocked && <AddServiceForm jobId={jobId} masterServices={masterServices} isAdmin={isAdmin} />}</div>
-                        <SortableItemList 
-                            jobId={jobId} 
-                            initialItems={services} 
-                            type="service" 
-                            isAdmin={isAdmin} 
-                            isLocked={isLocked} 
-                        />
-                    </CollapsibleSection>
-
-                    <CollapsibleSection title="Parts & Inventory" icon={<Cpu className="w-[18px] h-[18px] md:w-[22px] md:h-[22px] text-primary" />}>
-                        <div className="flex justify-end mb-4">{!isLocked && <AddPartForm jobId={jobId} masterParts={masterParts} isAdmin={isAdmin} />}</div>
-                        <SortableItemList 
-                            jobId={jobId} 
-                            initialItems={parts} 
-                            type="part" 
-                            isAdmin={isAdmin} 
-                            isLocked={isLocked} 
-                        />
-                    </CollapsibleSection>
+                    <JobItemsSections
+                        jobId={jobId}
+                        services={services}
+                        parts={parts}
+                        futureServices={futureServices}
+                        futureParts={futureParts}
+                        masterServices={masterServices}
+                        masterParts={masterParts}
+                        isAdmin={isAdmin}
+                        isLocked={isLocked}
+                    />
 
                     <CollapsibleSection title="In Future Work" icon={<Clock className="w-[18px] h-[18px] md:w-[22px] md:h-[22px] text-primary" />}>
                         <div className="p-4 mb-4 text-xs bg-amber-50/60 text-amber-700 rounded-xl border border-amber-100 flex items-center gap-2">

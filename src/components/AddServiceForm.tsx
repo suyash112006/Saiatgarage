@@ -85,7 +85,7 @@ export default function AddServiceForm({ jobId, masterServices, isAdmin }: AddSe
         if (selectedServices.find(s => s.id === service.id)) {
             setSelectedServices(prev => prev.filter(s => s.id !== service.id));
         } else {
-            setSelectedServices(prev => [...prev, { ...service, quantity: 1, customPrice: service.base_price, syncMaster: false, isEditingPrice: false }]);
+            setSelectedServices(prev => [...prev, { ...service, quantity: 1, customPrice: service.base_price, isEditingPrice: false }]);
         }
     };
 
@@ -116,14 +116,7 @@ export default function AddServiceForm({ jobId, masterServices, isAdmin }: AddSe
         }));
     };
 
-    const toggleSyncMaster = (serviceId: number) => {
-        setSelectedServices(prev => prev.map(s => {
-            if (s.id === serviceId) {
-                return { ...s, syncMaster: !s.syncMaster };
-            }
-            return s;
-        }));
-    };
+
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -134,7 +127,6 @@ export default function AddServiceForm({ jobId, masterServices, isAdmin }: AddSe
                 id: s.id, 
                 quantity: s.quantity || 1, 
                 price: s.customPrice,
-                syncMaster: s.syncMaster 
             })));
             if (res.success) {
                 toast.success(`${selectedServices.length} service${selectedServices.length > 1 ? 's' : ''} added`);
@@ -480,24 +472,7 @@ export default function AddServiceForm({ jobId, masterServices, isAdmin }: AddSe
                                                                     )}
                                                                 </div>
 
-                                                                {isSelected && selItem?.isEditingPrice && (
-                                                                    <div 
-                                                                        onClick={(e) => e.stopPropagation()}
-                                                                        style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}
-                                                                    >
-                                                                        <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                                                                            <input 
-                                                                                type="checkbox" 
-                                                                                checked={selItem.syncMaster}
-                                                                                onChange={() => toggleSyncMaster(s.id)}
-                                                                                style={{ width: '12px', height: '12px', cursor: 'pointer' }}
-                                                                            />
-                                                                            <span style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-                                                                                Update Master
-                                                                            </span>
-                                                                        </label>
-                                                                    </div>
-                                                                )}
+
                                                             </div>
                                                         )}
                                                     </div>

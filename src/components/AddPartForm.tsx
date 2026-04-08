@@ -62,7 +62,7 @@ export default function AddPartForm({ jobId, masterParts, isAdmin }: AddPartForm
                 toast.error(`"${part.name}" is out of stock`);
                 return;
             }
-            setSelectedParts(prev => [...prev, { ...part, quantity: 1, customPrice: part.unit_price, syncMaster: false, isEditingPrice: false }]);
+            setSelectedParts(prev => [...prev, { ...part, quantity: 1, customPrice: part.unit_price, isEditingPrice: false }]);
         }
     };
 
@@ -98,14 +98,7 @@ export default function AddPartForm({ jobId, masterParts, isAdmin }: AddPartForm
         }));
     };
 
-    const toggleSyncMaster = (partId: number) => {
-        setSelectedParts(prev => prev.map(p => {
-            if (p.id === partId) {
-                return { ...p, syncMaster: !p.syncMaster };
-            }
-            return p;
-        }));
-    };
+
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -116,7 +109,6 @@ export default function AddPartForm({ jobId, masterParts, isAdmin }: AddPartForm
                 id: p.id, 
                 quantity: p.quantity || 1,
                 price: p.customPrice,
-                syncMaster: p.syncMaster
             })));
             if (res.success) {
                 toast.success(`${selectedParts.length} part${selectedParts.length > 1 ? 's' : ''} added`);
@@ -435,24 +427,7 @@ export default function AddPartForm({ jobId, masterParts, isAdmin }: AddPartForm
                                                     {outOfStock ? 'OUT OF STOCK' : `${p.stock_quantity} in stock`}
                                                 </div>
 
-                                                {isSelected && selItem?.isEditingPrice && (
-                                                    <div 
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}
-                                                    >
-                                                        <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                                                            <input 
-                                                                type="checkbox" 
-                                                                checked={selItem.syncMaster}
-                                                                onChange={() => toggleSyncMaster(p.id)}
-                                                                style={{ width: '12px', height: '12px', cursor: 'pointer' }}
-                                                            />
-                                                            <span style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-                                                                Update Master
-                                                            </span>
-                                                        </label>
-                                                    </div>
-                                                )}
+
                                             </div>
                                         </div>
                                     </div>

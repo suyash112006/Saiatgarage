@@ -457,6 +457,33 @@ export async function removeJobService(jobId: number, itemId: number) {
     }
 }
 
+export async function updateJobItem(
+    jobId: number,
+    type: 'service' | 'part',
+    itemId: number,
+    price: number,
+    quantity: number
+) {
+    const session = await getSession();
+    if (session?.role !== 'admin') return { error: 'Admin access required' };
+
+    const table = type === 'service' ? 'job_card_services' : 'job_card_parts';
+
+    try {
+        await db.query(
+            `UPDATE ${table} SET price = $1, quantity = $2 WHERE id = $3 AND job_id = $4`,
+            [price, quantity, itemId, jobId]
+        );
+        await updateJobTotals(jobId);
+        revalidatePath(`/dashboard/jobs/${jobId}`);
+        return { success: true };
+    } catch (err: any) {
+        console.error('updateJobItem error:', err);
+        return { error: `Failed to update item: ${err.message}` };
+    }
+}
+
+
 export async function addJobPart(formData: FormData) {
     const session = await getSession();
     if (!session) return { error: 'Unauthorized' };

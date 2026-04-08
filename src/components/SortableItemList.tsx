@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Reorder, useDragControls } from 'framer-motion';
-import { GripVertical, X, Hash, Clock, CornerUpLeft } from 'lucide-react';
-import { updateJobItemOrder, toggleJobItemFuture, removeJobService, removeJobPart } from '@/app/actions/job';
+import { GripVertical, X, Hash, Clock, CornerUpLeft, Check } from 'lucide-react';
+import { updateJobItemOrder, toggleJobItemFuture, removeJobService, removeJobPart, updateJobItem } from '@/app/actions/job';
 import { toast } from 'sonner';
 
 interface SortableItem {
@@ -24,9 +24,10 @@ interface Props {
     isAdmin: boolean;
     isLocked: boolean;
     isFutureView?: boolean;
+    editMode?: boolean;
 }
 
-export default function SortableItemList({ jobId, initialItems, type, isAdmin, isLocked, isFutureView = false }: Props) {
+export default function SortableItemList({ jobId, initialItems, type, isAdmin, isLocked, isFutureView = false, editMode = false }: Props) {
     const [items, setItems] = useState(initialItems);
 
     useEffect(() => {
@@ -58,6 +59,16 @@ export default function SortableItemList({ jobId, initialItems, type, isAdmin, i
         if (res.error) toast.error(res.error);
     }
 
+    async function handleSaveItem(itemId: number, price: number, quantity: number) {
+        const res = await updateJobItem(jobId, type, itemId, price, quantity);
+        if (res.success) {
+            toast.success('Item updated');
+            setItems(prev => prev.map(i => i.id === itemId ? { ...i, price, quantity } : i));
+        } else {
+            toast.error(res.error || 'Failed to update');
+        }
+    }
+
     if (items.length === 0) {
         return (
             <div style={{
@@ -84,17 +95,37 @@ export default function SortableItemList({ jobId, initialItems, type, isAdmin, i
                     isAdmin={isAdmin}
                     isLocked={isLocked}
                     isFutureView={isFutureView}
+                    editMode={editMode}
                     onToggleFuture={() => handleToggleFuture(item.id)}
                     onDelete={() => handleDelete(item.id)}
+                    onSave={(price: number, quantity: number) => handleSaveItem(item.id, price, quantity)}
                 />
             ))}
         </Reorder.Group>
     );
 }
 
-function ReorderItem({ item, type, isAdmin, isLocked, isFutureView, onToggleFuture, onDelete }: any) {
+function ReorderItem({ item, type, isAdmin, isLocked, isFutureView, editMode, onToggleFuture, onDelete, onSave }: any) {
     const controls = useDragControls();
     const name = type === 'service' ? item.service_name : item.part_name;
+
+    const [editPrice, setEditPrice] = useState<number>(item.price);
+    const [editQty, setEditQty] = useState<number>(item.quantity);
+    const [saving, setSaving] = useState(false);
+
+    // Reset local state when item updates from parent
+    useEffect(() => {
+        setEditPrice(item.price);
+        setEditQty(item.quantity);
+    }, [item.price, item.quantity]);
+
+    async function handleSave() {
+        setSaving(true);
+        await onSave(editPrice, editQty);
+        setSaving(false);
+    }
+
+    const isDirty = editPrice !== item.price || editQty !== item.quantity;
 
     return (
         <Reorder.Item
@@ -108,21 +139,25 @@ function ReorderItem({ item, type, isAdmin, isLocked, isFutureView, onToggleFutu
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '12px 14px',
+                    padding: editMode ? '10px 14px' : '12px 14px',
                     marginBottom: '6px',
                     borderRadius: '12px',
-                    border: '1.5px solid var(--border)',
-                    backgroundColor: 'var(--bg-main)',
-                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                    border: `1.5px solid ${editMode ? 'rgba(59,130,246,0.35)' : 'var(--border)'}`,
+                    backgroundColor: editMode ? 'rgba(59,130,246,0.04)' : 'var(--bg-main)',
+                    transition: 'border-color 0.15s, box-shadow 0.15s, background 0.15s',
                     gap: '10px',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = isFutureView ? 'rgba(245,158,11,0.4)' : 'rgba(59,130,246,0.35)')}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                onMouseEnter={e => {
+                    if (!editMode) e.currentTarget.style.borderColor = isFutureView ? 'rgba(245,158,11,0.4)' : 'rgba(59,130,246,0.35)';
+                }}
+                onMouseLeave={e => {
+                    if (!editMode) e.currentTarget.style.borderColor = 'var(--border)';
+                }}
             >
                 {/* Left: Drag handle + Name */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-                    {/* Drag handle — only for reorder within list */}
-                    {!isLocked && (
+                    {/* Drag handle */}
+                    {!isLocked && !editMode && (
                         <div
                             onPointerDown={(e) => controls.start(e)}
                             title="Drag to reorder"
@@ -150,7 +185,7 @@ function ReorderItem({ item, type, isAdmin, isLocked, isFutureView, onToggleFutu
                     )}
 
                     {/* Item info */}
-                    <div style={{ minWidth: 0 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{
                             fontSize: '13.5px', fontWeight: 700,
                             color: 'var(--text-main)',
@@ -158,42 +193,116 @@ function ReorderItem({ item, type, isAdmin, isLocked, isFutureView, onToggleFutu
                         }}>
                             {name}
                         </div>
-                        <div style={{
-                            display: 'flex', alignItems: 'center', gap: '6px',
-                            marginTop: '2px',
-                            fontSize: '11px', fontWeight: 600,
-                            textTransform: 'uppercase', letterSpacing: '0.05em',
-                            color: 'var(--text-muted)',
-                        }}>
-                            {type === 'part' && item.part_no && (
-                                <>
-                                    <Hash size={9} />
-                                    <span style={{ fontFamily: 'monospace' }}>{item.part_no}</span>
-                                    <span>·</span>
-                                </>
-                            )}
-                            <span>Qty: {item.quantity}</span>
-                        </div>
+                        {/* Qty + Part no row */}
+                        {!editMode && (
+                            <div style={{
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                marginTop: '2px',
+                                fontSize: '11px', fontWeight: 600,
+                                textTransform: 'uppercase', letterSpacing: '0.05em',
+                                color: 'var(--text-muted)',
+                            }}>
+                                {type === 'part' && item.part_no && (
+                                    <>
+                                        <Hash size={9} />
+                                        <span style={{ fontFamily: 'monospace' }}>{item.part_no}</span>
+                                        <span>·</span>
+                                    </>
+                                )}
+                                <span>Qty: {item.quantity}</span>
+                            </div>
+                        )}
+
+                        {/* Edit mode — inline inputs for Qty */}
+                        {editMode && isAdmin && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                                <label style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>Qty</label>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    value={editQty}
+                                    onChange={e => setEditQty(Math.max(1, Number(e.target.value)))}
+                                    onClick={e => e.stopPropagation()}
+                                    style={{
+                                        width: '56px',
+                                        padding: '4px 8px',
+                                        borderRadius: '7px',
+                                        border: '1.5px solid rgba(59,130,246,0.35)',
+                                        background: 'var(--bg-card)',
+                                        color: 'var(--text-main)',
+                                        fontSize: '13px', fontWeight: 700,
+                                        outline: 'none',
+                                    }}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Right: Price + Future toggle + Delete */}
+                {/* Right: Price / Edit inputs / Actions */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                    {/* Price */}
-                    {isAdmin && (
-                        <span style={{
-                            fontSize: '13px', fontWeight: 800,
-                            color: 'var(--text-main)',
-                            minWidth: '60px', textAlign: 'right',
-                        }}>
-                            ₹{(item.price * item.quantity).toLocaleString()}
-                        </span>
+
+                    {/* Edit mode — price input + save */}
+                    {editMode && isAdmin ? (
+                        <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)' }}>₹</span>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    value={editPrice}
+                                    onChange={e => setEditPrice(Number(e.target.value))}
+                                    onClick={e => e.stopPropagation()}
+                                    style={{
+                                        width: '72px',
+                                        padding: '5px 8px',
+                                        borderRadius: '8px',
+                                        border: '1.5px solid rgba(59,130,246,0.4)',
+                                        background: 'var(--bg-card)',
+                                        color: '#3b82f6',
+                                        fontSize: '13px', fontWeight: 800,
+                                        outline: 'none',
+                                        textAlign: 'right',
+                                    }}
+                                />
+                            </div>
+
+                            {isDirty && (
+                                <button
+                                    type="button"
+                                    onClick={handleSave}
+                                    disabled={saving}
+                                    title="Save changes"
+                                    style={{
+                                        width: '30px', height: '30px', borderRadius: '8px',
+                                        border: '1.5px solid rgba(16,185,129,0.4)',
+                                        background: 'rgba(16,185,129,0.1)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        cursor: 'pointer', color: '#10b981',
+                                        transition: 'all 0.15s', flexShrink: 0,
+                                        opacity: saving ? 0.6 : 1,
+                                    }}
+                                >
+                                    <Check size={14} strokeWidth={3} />
+                                </button>
+                            )}
+                        </>
+                    ) : (
+                        /* Normal mode — static price */
+                        isAdmin && (
+                            <span style={{
+                                fontSize: '13px', fontWeight: 800,
+                                color: 'var(--text-main)',
+                                minWidth: '60px', textAlign: 'right',
+                            }}>
+                                ₹{(item.price * item.quantity).toLocaleString()}
+                            </span>
+                        )
                     )}
 
-                    {/* Future Work toggle button */}
-                    {!isLocked && (
+                    {/* Future Work toggle — hidden in edit mode */}
+                    {!isLocked && !editMode && (
                         isFutureView ? (
-                            // In Future Work → show "Move back to job" button
                             <button
                                 type="button"
                                 onClick={onToggleFuture}
@@ -222,7 +331,6 @@ function ReorderItem({ item, type, isAdmin, isLocked, isFutureView, onToggleFutu
                                 <span>Restore</span>
                             </button>
                         ) : (
-                            // In Active list → show "Move to Future Work" button
                             <button
                                 type="button"
                                 onClick={onToggleFuture}
@@ -257,8 +365,8 @@ function ReorderItem({ item, type, isAdmin, isLocked, isFutureView, onToggleFutu
                         )
                     )}
 
-                    {/* Delete */}
-                    {!isLocked && (
+                    {/* Delete — hidden in edit mode */}
+                    {!isLocked && !editMode && (
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onDelete(); }}
