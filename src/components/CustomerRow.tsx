@@ -6,11 +6,10 @@ import { deleteCustomer } from "@/app/actions/customer";
 
 interface CustomerRowProps {
     customer: any;
-    index: number;
     isAdmin: boolean;
 }
 
-export function CustomerRow({ customer, index, isAdmin }: CustomerRowProps) {
+export function CustomerRow({ customer, isAdmin }: CustomerRowProps) {
     const router = useRouter();
     const initials = customer.name ? customer.name.charAt(0).toUpperCase() : "?";
 
@@ -32,7 +31,7 @@ export function CustomerRow({ customer, index, isAdmin }: CustomerRowProps) {
             }}
         >
             <td className="text-slate-400 font-mono text-[10px] font-bold w-8 pl-4">
-                {String(index + 1).padStart(2, '0')}
+                #{String(customer.id).padStart(4, '0')}
             </td>
             <td>
                 <div className="name-cell">

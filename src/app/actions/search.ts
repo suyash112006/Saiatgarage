@@ -14,7 +14,8 @@ export async function searchGeneral(query: string) {
         SELECT id, name, mobile as phone, address, 'customer' as type,
                (SELECT id FROM job_cards WHERE customer_id = customers.id ORDER BY id DESC LIMIT 1) as latest_job_id
         FROM customers 
-        WHERE name ILIKE $1 OR mobile ILIKE $1
+        WHERE (name ILIKE $1 OR mobile ILIKE $1 OR CAST(id AS TEXT) ILIKE $1)
+        AND deleted_at IS NULL
         LIMIT 5
       `, [searchTerm]),
       db.query(`

@@ -26,8 +26,9 @@ export default function CustomerTable({ initialCustomers, isAdmin }: CustomerTab
     const filteredCustomers = initialCustomers.filter(c => {
         const matchesSearch =
             c.name.toLowerCase().includes(search.toLowerCase()) ||
-            c.mobile.includes(search) ||
-            (c.address && c.address.toLowerCase().includes(search.toLowerCase()));
+            (c.mobile && c.mobile.includes(search)) ||
+            (c.address && c.address.toLowerCase().includes(search.toLowerCase())) ||
+            String(c.id).includes(search.replace(/^#/, ''));
 
         return matchesSearch;
     });
@@ -50,7 +51,7 @@ export default function CustomerTable({ initialCustomers, isAdmin }: CustomerTab
                 <table className="data-table">
                     <thead>
                         <tr>
-                            <th className="w-8 pl-4">#</th>
+                            <th className="w-8 pl-4">UID</th>
                             <th>Name</th>
                             <th>Mobile</th>
                             <th>Address</th>
@@ -72,8 +73,8 @@ export default function CustomerTable({ initialCustomers, isAdmin }: CustomerTab
                                 </td>
                             </tr>
                         ) : (
-                            filteredCustomers.map((c: any, i: number) => (
-                                <CustomerRow key={c.id} customer={c} index={filteredCustomers.length - 1 - i} isAdmin={isAdmin} />
+                            filteredCustomers.map((c: any) => (
+                                <CustomerRow key={c.id} customer={c} isAdmin={isAdmin} />
                             ))
                         )}
                     </tbody>
