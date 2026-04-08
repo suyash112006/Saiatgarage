@@ -14,7 +14,7 @@ export default async function CustomerDetailPage(props: { params: Params }) {
                 <span className="breadcrumb-separator" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>/</span>
                 <Link href="/dashboard/customers" className="breadcrumb-item" style={{ color: 'var(--text-muted)' }}>Customers</Link>
                 <span className="breadcrumb-separator" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>/</span>
-                <span className="breadcrumb-item active" style={{ color: 'var(--primary)' }}>#{params.id.toString().padStart(4, '0')}</span>
+                <span className="breadcrumb-item active" style={{ color: 'var(--primary)' }}>{params.id}</span>
             </nav>
 
             <Suspense fallback={<div className="p-10 text-center text-muted">Loading customer details...</div>}>

@@ -21,7 +21,7 @@ export default async function EditCustomerPage(props: { params: Params }) {
                         <span className="breadcrumb-separator mx-2 text-slate-300">/</span>
                         <Link href="/dashboard/customers" className="breadcrumb-item text-slate-400 hover:text-primary transition-colors">Customers</Link>
                         <span className="breadcrumb-separator mx-2 text-slate-300">/</span>
-                        <Link href={`/dashboard/customers/${params.id}`} className="breadcrumb-item text-slate-400 hover:text-primary transition-colors">#{params.id.toString().padStart(4, '0')}</Link>
+                        <Link href={`/dashboard/customers/${params.id}`} className="breadcrumb-item text-slate-400 hover:text-primary transition-colors">{params.id}</Link>
                         <span className="breadcrumb-separator mx-2 text-slate-300">/</span>
                         <span className="breadcrumb-item active text-primary font-bold">Edit Profile</span>
                     </nav>
