@@ -17,9 +17,9 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
-    // If logged in and at root, redirect to dashboard
-    if (session && pathname === '/') {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+    // Allow homepage to be viewed by everyone (Static loading)
+    if (pathname === '/') {
+        return NextResponse.next();
     }
 
     return NextResponse.next();

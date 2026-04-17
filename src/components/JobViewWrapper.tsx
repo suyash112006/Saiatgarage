@@ -1,6 +1,7 @@
 
 import { getJobDetails, updateJobStatus, deleteJobCard, getMasterServices, getMasterParts, removeJobService, removeJobPart, getMechanics } from '@/app/actions/job';
 import { getGeneralSettings } from '@/app/actions/settings';
+import { getPartCategories } from '@/app/actions/inventory';
 import { getInvoiceByJobId, generateInvoice } from '@/app/actions/invoice';
 import AssignMechanicDropdown from '@/components/AssignMechanicDropdown';
 import { getSession } from '@/app/actions/auth';
@@ -26,32 +27,48 @@ interface JobViewWrapperProps {
 }
 
 export default async function JobViewWrapper({ jobId }: JobViewWrapperProps) {
-    const data = await getJobDetails(jobId);
-    const session = await getSession();
-    const isAdmin = session?.role === 'admin';
+    // Fetch all required data in parallel to resolve sequential bottlenecks
+    const [
+        data,
+        session,
+        masterServices,
+        masterParts,
+        categoriesRes,
+        generalSettingsRes,
+        carLibraryRes
+    ] = await Promise.all([
+        getJobDetails(jobId),
+        getSession(),
+        getMasterServices(),
+        getMasterParts(),
+        getPartCategories(),
+        getGeneralSettings(),
+        db.query(`
+            SELECT m.name as model, b.name as brand 
+            FROM vehicle_models m 
+            JOIN vehicle_brands b ON m.brand_id = b.id 
+            ORDER BY b.name, m.name
+        `)
+    ]);
 
     if (!data) notFound();
 
     const { job, services, futureServices, parts, futureParts } = data;
-    const masterServices = await getMasterServices();
-    const masterParts = await getMasterParts();
+    const isAdmin = session?.role === 'admin';
+    
+    // Dependent fetches that require isAdmin check (could also be parallelized if needed)
+    // but these are usually fast or conditional
     const mechanics = isAdmin ? await getMechanics() : [];
     const existingInvoice = isAdmin ? await getInvoiceByJobId(jobId) : null;
 
-    const { settings } = await getGeneralSettings();
+    const categories = categoriesRes.success ? categoriesRes.data : [];
+    const { settings } = generalSettingsRes;
     const taxRate = settings?.tax_rate || '18';
+
+    const carLibrary = carLibraryRes.rows as { brand: string, model: string }[];
 
     // Mechanics are locked out if job is billed or completed. Admins are never locked out.
     const isLocked = !isAdmin && (job.status === 'BILLED' || job.status === 'COMPLETED');
-
-    // Fetch car library for brand/model dropdowns in Edit Modal
-    const libraryRes = await db.query(`
-        SELECT m.name as model, b.name as brand 
-        FROM vehicle_models m 
-        JOIN vehicle_brands b ON m.brand_id = b.id 
-        ORDER BY b.name, m.name
-    `);
-    const carLibrary = libraryRes.rows as { brand: string, model: string }[];
 
     return (
         <>
@@ -280,6 +297,7 @@ export default async function JobViewWrapper({ jobId }: JobViewWrapperProps) {
                         futureParts={futureParts}
                         masterServices={masterServices}
                         masterParts={masterParts}
+                        categories={categories}
                         isAdmin={isAdmin}
                         isLocked={isLocked}
                     />

@@ -130,8 +130,12 @@ VALUES ('John Mechanic', 'mechanic@garage.com', 'mechanic', 'mech123', 'mechanic
 
 -- Performance Indexes
 CREATE INDEX IF NOT EXISTS idx_invoices_created_at ON invoices(created_at);
-CREATE INDEX IF NOT EXISTS idx_job_cards_status ON job_cards(status);
-CREATE INDEX IF NOT EXISTS idx_job_cards_mechanic ON job_cards(assigned_mechanic_id);
-CREATE INDEX IF NOT EXISTS idx_job_cards_customer ON job_cards(customer_id);
 CREATE INDEX IF NOT EXISTS idx_job_card_services_job ON job_card_services(job_id);
 CREATE INDEX IF NOT EXISTS idx_job_card_parts_job ON job_card_parts(job_id);
+
+-- JOIN Optimization Indexes
+CREATE INDEX IF NOT EXISTS idx_vehicles_customer ON vehicles(customer_id);
+CREATE INDEX IF NOT EXISTS idx_job_cards_vehicle ON job_cards(vehicle_id);
+CREATE INDEX IF NOT EXISTS idx_job_card_services_service ON job_card_services(service_id);
+CREATE INDEX IF NOT EXISTS idx_job_card_parts_part ON job_card_parts(part_id);
+CREATE INDEX IF NOT EXISTS idx_vehicle_models_brand ON vehicle_models(brand_id);

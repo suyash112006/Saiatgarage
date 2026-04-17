@@ -62,12 +62,17 @@ export default function AddServiceForm({ jobId, masterServices, isAdmin }: AddSe
 
     const filtered = useMemo(() => {
         const list = (masterServices || []).filter(s => s && s.name);
-        if (!query.trim()) return list;
-        const q = query.toLowerCase();
-        return list.filter(s =>
-            s.name.toLowerCase().includes(q) ||
-            (s.category || '').toLowerCase().includes(q)
-        );
+        
+        let filteredList = list;
+        if (query.trim()) {
+            const q = query.toLowerCase();
+            filteredList = list.filter(s =>
+                s.name.toLowerCase().includes(q) ||
+                (s.category || '').toLowerCase().includes(q)
+            );
+        }
+        
+        return [...filteredList].sort((a, b) => a.name.localeCompare(b.name));
     }, [masterServices, query]);
 
     // Group by category

@@ -1,19 +1,21 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, Minus, X, Search, Check, Cpu, Loader2, Package, AlertTriangle, ShoppingCart, Pencil } from 'lucide-react';
+import { Plus, Minus, X, Search, Check, Cpu, Loader2, Package, AlertTriangle, ShoppingCart, Pencil, Tag } from 'lucide-react';
 import { addJobParts } from '@/app/actions/job';
 import { toast } from 'sonner';
 
 interface AddPartFormProps {
     jobId: number;
     masterParts: any[];
+    categories: any[];
     isAdmin: boolean;
 }
 
-export default function AddPartForm({ jobId, masterParts, isAdmin }: AddPartFormProps) {
+export default function AddPartForm({ jobId, masterParts, categories, isAdmin }: AddPartFormProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [query, setQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('All');
     const [selectedParts, setSelectedParts] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const modalRef = useRef<HTMLDivElement>(null);
@@ -22,6 +24,7 @@ export default function AddPartForm({ jobId, masterParts, isAdmin }: AddPartForm
     function handleClose() {
         setIsOpen(false);
         setQuery('');
+        setSelectedCategory('All');
         setSelectedParts([]);
         setLoading(false);
     }
@@ -45,14 +48,22 @@ export default function AddPartForm({ jobId, masterParts, isAdmin }: AddPartForm
     }, [isOpen]);
 
     const filtered = useMemo(() => {
-        const list = (masterParts || []).filter(p => p && p.name);
-        if (!query.trim()) return list;
-        const q = query.toLowerCase();
-        return list.filter(p =>
-            p.name.toLowerCase().includes(q) ||
-            (p.part_no || '').toLowerCase().includes(q)
-        );
-    }, [masterParts, query]);
+        let list = (masterParts || []).filter(p => p && p.name);
+        if (selectedCategory !== 'All') {
+            list = list.filter(p => (p.category || 'General') === selectedCategory);
+        }
+        
+        let filteredList = list;
+        if (query.trim()) {
+            const q = query.toLowerCase();
+            filteredList = list.filter(p =>
+                p.name.toLowerCase().includes(q) ||
+                (p.part_no || '').toLowerCase().includes(q)
+            );
+        }
+        
+        return [...filteredList].sort((a, b) => a.name.localeCompare(b.name));
+    }, [masterParts, query, selectedCategory]);
 
     const togglePart = (part: any) => {
         if (selectedParts.find(p => p.id === part.id)) {
@@ -222,7 +233,7 @@ export default function AddPartForm({ jobId, masterParts, isAdmin }: AddPartForm
                 </div>
 
                 {/* ── Search ── */}
-                <div style={{ padding: '16px 24px 12px', flexShrink: 0 }}>
+                <div style={{ padding: '16px 24px 0', flexShrink: 0 }}>
                     <div style={{
                         display: 'flex', alignItems: 'center', gap: '10px',
                         padding: '10px 14px',
@@ -248,6 +259,34 @@ export default function AddPartForm({ jobId, masterParts, isAdmin }: AddPartForm
                                 <X size={14} />
                             </button>
                         )}
+                    </div>
+                </div>
+
+                {/* ── Category Filter ── */}
+                <div style={{ padding: '8px 24px 12px', flexShrink: 0 }}>
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        padding: '9px 14px',
+                        background: 'var(--bg-main)',
+                        border: '1.5px solid var(--border)',
+                        borderRadius: '12px',
+                    }}>
+                        <Tag size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                        <select
+                            value={selectedCategory}
+                            onChange={e => setSelectedCategory(e.target.value)}
+                            style={{
+                                border: 'none', outline: 'none', background: 'transparent',
+                                fontSize: '13.5px', color: selectedCategory === 'All' ? 'var(--text-muted)' : 'var(--text-main)',
+                                fontWeight: selectedCategory === 'All' ? 500 : 700,
+                                width: '100%', cursor: 'pointer',
+                            }}
+                        >
+                            <option value="All" style={{ background: 'var(--bg-card)', color: 'var(--text-main)' }}>&nbsp;&nbsp;-- All Categories --</option>
+                            {categories.map(cat => (
+                                <option key={cat.id} value={cat.name} style={{ background: 'var(--bg-card)', color: 'var(--text-main)' }}>&nbsp;&nbsp;{cat.name}</option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 

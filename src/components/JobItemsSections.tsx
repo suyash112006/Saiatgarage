@@ -16,13 +16,14 @@ interface Props {
     futureParts: any[];
     masterServices: any[];
     masterParts: any[];
+    categories: any[];
     isAdmin: boolean;
     isLocked: boolean;
 }
 
 export default function JobItemsSections({
     jobId, services, parts, futureServices, futureParts,
-    masterServices, masterParts, isAdmin, isLocked,
+    masterServices, masterParts, categories, isAdmin, isLocked,
 }: Props) {
     const [serviceEditMode, setServiceEditMode] = useState(false);
     const [partEditMode, setPartEditMode] = useState(false);
@@ -91,7 +92,7 @@ export default function JobItemsSections({
                 rightElement={isAdmin && !isLocked ? <EditToggle active={partEditMode} onToggle={() => setPartEditMode(v => !v)} /> : undefined}
             >
                 <div className="flex justify-end mb-4">
-                    {!isLocked && !partEditMode && <AddPartForm jobId={jobId} masterParts={masterParts} isAdmin={isAdmin} />}
+                    {!isLocked && !partEditMode && <AddPartForm jobId={jobId} masterParts={masterParts} categories={categories} isAdmin={isAdmin} />}
                 </div>
                 <SortableItemList
                     jobId={jobId}

@@ -81,13 +81,14 @@ export async function addMasterPart(formData: FormData) {
     const stockQuantity = Number(formData.get('stockQuantity')) || 0;
     const brand = formData.get('brand') as string;
     const compatibility = formData.get('compatibility') as string;
+    const category = formData.get('category') as string;
 
     const totalValue = unitPrice * stockQuantity;
 
     try {
         const res = await db.query(
-            'INSERT INTO parts (name, part_no, unit_price, stock_quantity, total_value, brand, compatibility) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-            [name, partNo || null, unitPrice, stockQuantity, totalValue, brand || null, compatibility || null]
+            'INSERT INTO parts (name, part_no, unit_price, stock_quantity, total_value, brand, compatibility, category) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+            [name, partNo || null, unitPrice, stockQuantity, totalValue, brand || null, compatibility || null, category || 'General']
         );
 
         revalidatePath('/dashboard/inventory');
@@ -111,12 +112,13 @@ export async function updateMasterPart(formData: FormData) {
     const stockQuantity = Number(formData.get('stockQuantity')) || 0;
     const brand = formData.get('brand') as string;
     const compatibility = formData.get('compatibility') as string;
+    const category = formData.get('category') as string;
     const totalValue = unitPrice * stockQuantity;
 
     try {
         const res = await db.query(
-            'UPDATE parts SET name = $1, part_no = $2, unit_price = $3, stock_quantity = $4, total_value = $5, brand = $6, compatibility = $7 WHERE id = $8 RETURNING *',
-            [name, partNo, unitPrice, stockQuantity, totalValue, brand, compatibility, id]
+            'UPDATE parts SET name = $1, part_no = $2, unit_price = $3, stock_quantity = $4, total_value = $5, brand = $6, compatibility = $7, category = $8 WHERE id = $9 RETURNING *',
+            [name, partNo, unitPrice, stockQuantity, totalValue, brand, compatibility, category || 'General', id]
         );
 
         revalidatePath('/dashboard/inventory');
@@ -325,5 +327,110 @@ export async function deletePartLibraryItem(id: number) {
         return { success: true };
     } catch (err) {
         return { error: 'Failed to delete' };
+    }
+}
+
+/**
+ * PART CATEGORIES
+ */
+
+export async function getPartCategories() {
+    try {
+        // Auto-create table if missing
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS part_categories (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) UNIQUE NOT NULL,
+                color VARCHAR(20) DEFAULT '#6b7280'
+            )
+        `);
+
+        // Check if empty and insert defaults if so
+        const { rowCount } = await db.query('SELECT 1 FROM part_categories LIMIT 1');
+        if (rowCount === 0) {
+            await db.query(`
+                INSERT INTO part_categories (name, color) VALUES 
+                ('General', '#6b7280'),
+                ('Filters', '#0ea5e9'),
+                ('Brakes', '#ef4444'),
+                ('Engine', '#f97316'),
+                ('Electrical', '#eab308'),
+                ('Body & Suspension', '#8b5cf6'),
+                ('AC / Heating', '#06b6d4')
+                ON CONFLICT (name) DO NOTHING
+            `);
+        }
+
+        const res = await db.query('SELECT * FROM part_categories ORDER BY name ASC');
+        return { success: true, data: res.rows };
+    } catch (err) {
+        console.error("Error fetching categories:", err);
+        return { success: false, data: [] };
+    }
+}
+
+export async function addPartCategory(formData: FormData) {
+    const session = await getSession();
+    if (session?.role !== 'admin') return { error: 'Unauthorized' };
+
+    const name = formData.get('name') as string;
+    const color = formData.get('color') as string || '#6b7280';
+
+    if (!name) return { error: 'Category name is required' };
+
+    try {
+        const res = await db.query('INSERT INTO part_categories (name, color) VALUES ($1, $2) RETURNING *', [name, color]);
+        revalidatePath('/dashboard/inventory');
+        return { success: true, data: res.rows[0] };
+    } catch (err: any) {
+        if (err.code === '23505') return { error: 'Category already exists' };
+        return { error: 'Failed to add category' };
+    }
+}
+
+export async function updatePartCategory(formData: FormData) {
+    const session = await getSession();
+    if (session?.role !== 'admin') return { error: 'Unauthorized' };
+
+    const id = Number(formData.get('id'));
+    const name = formData.get('name') as string;
+    const color = formData.get('color') as string || '#6b7280';
+
+    try {
+        // Option to cascade update items containing this category
+        const oldCatRes = await db.query('SELECT name FROM part_categories WHERE id = $1', [id]);
+        const oldName = oldCatRes.rows[0]?.name;
+
+        const res = await db.query('UPDATE part_categories SET name = $1, color = $2 WHERE id = $3 RETURNING *', [name, color, id]);
+
+        if (oldName && oldName !== name) {
+            await db.query('UPDATE parts SET category = $1 WHERE category = $2', [name, oldName]);
+        }
+
+        revalidatePath('/dashboard/inventory');
+        return { success: true, data: res.rows[0] };
+    } catch (err) {
+        return { error: 'Failed to update category' };
+    }
+}
+
+export async function deletePartCategory(id: number) {
+    const session = await getSession();
+    if (session?.role !== 'admin') return { error: 'Unauthorized' };
+
+    try {
+        const catRes = await db.query('SELECT name FROM part_categories WHERE id = $1', [id]);
+        const catName = catRes.rows[0]?.name;
+
+        if (catName) {
+            // Revert parts using this category to General
+            await db.query('UPDATE parts SET category = $1 WHERE category = $2', ['General', catName]);
+        }
+
+        await db.query('DELETE FROM part_categories WHERE id = $1', [id]);
+        revalidatePath('/dashboard/inventory');
+        return { success: true };
+    } catch (err) {
+        return { error: 'Failed to delete category' };
     }
 }

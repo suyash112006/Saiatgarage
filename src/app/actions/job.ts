@@ -216,7 +216,7 @@ export async function updateJob(formData: FormData) {
 
 // Phase 2: Services & Parts
 export async function getMasterServices() {
-    const res = await db.query('SELECT * FROM services ORDER BY category, name');
+    const res = await db.query('SELECT * FROM services ORDER BY name ASC');
     return res.rows;
 }
 

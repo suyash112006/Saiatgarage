@@ -15,14 +15,16 @@ export default function InventoryModal({
     onSuccess,
     type,
     initialData,
-    brands = []
+    brands = [],
+    categories = []
 }: {
     isOpen: boolean,
     onClose: () => void,
     onSuccess: (data: any) => void,
     type: 'services' | 'parts' | 'cars' | 'part_library',
     initialData?: any,
-    brands?: any[]
+    brands?: any[],
+    categories?: any[]
 }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -221,6 +223,19 @@ export default function InventoryModal({
                                             />
                                         </div>
                                         {isEdit && type === 'parts' && <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginLeft: '12px' }}>Fixed identifier</p>}
+                                    </div>
+                                    <div className="form-field">
+                                        <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: '8px', display: 'block' }}>Category</label>
+                                        <div className="input-wrapper">
+                                            <select
+                                                name="category"
+                                                defaultValue={initialData?.category || 'General'}
+                                            >
+                                                {categories.map(cat => (
+                                                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="form-field">

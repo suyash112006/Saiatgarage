@@ -3,38 +3,39 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Wrench, Layers, Car } from 'lucide-react';
-import { deleteMasterService, deleteMasterPart, deleteCarLibraryItem, deletePartLibraryItem } from '@/app/actions/inventory';
+import { deleteMasterService, deleteMasterPart, deleteCarLibraryItem } from '@/app/actions/inventory';
 import ServiceInventoryList from '@/components/inventory/ServiceInventoryList';
 import PartInventoryList from '@/components/inventory/PartInventoryList';
-import PartLibraryList from '@/components/inventory/PartLibraryList';
 import CarLibraryList from '@/components/inventory/CarLibraryList';
 import InventoryModal from '@/components/inventory/InventoryModal';
+import ManageCategoriesModal from '@/components/inventory/ManageCategoriesModal';
 
 export default function InventoryClient({
     initialServices,
     initialParts,
-    initialPartLibrary,
     initialLibrary,
     initialBrands,
+    initialCategories,
     initialTab
 }: {
     initialServices: any[],
     initialParts: any[],
-    initialPartLibrary: any[],
     initialLibrary: any[],
     initialBrands: any[],
+    initialCategories: any[],
     initialTab: string
 }) {
     const router = useRouter();
-    const [tab, setTab] = useState(initialTab);
+    const [tab, setTab] = useState(initialTab === 'library' ? 'parts' : initialTab);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any>(null);
 
     // Local state for instant updates
     const [services, setServices] = useState(initialServices);
     const [parts, setParts] = useState(initialParts);
-    const [partLibrary, setPartLibrary] = useState(initialPartLibrary);
     const [carLibrary, setCarLibrary] = useState(initialLibrary);
+    const [categories, setCategories] = useState(initialCategories || []);
+    const [isManageCategoriesOpen, setIsManageCategoriesOpen] = useState(false);
 
     function handleAddNew() {
         setEditingItem(null);
@@ -55,20 +56,18 @@ export default function InventoryClient({
             if (result.type === 'services') {
                 setServices(prev => {
                     const exists = prev.find(i => i.id === newItem.id);
-                    if (exists) return prev.map(i => i.id === newItem.id ? newItem : i);
-                    return [newItem, ...prev];
+                    const updated = exists 
+                        ? prev.map(i => i.id === newItem.id ? newItem : i)
+                        : [...prev, newItem];
+                    return [...updated].sort((a, b) => a.name.localeCompare(b.name));
                 });
             } else if (result.type === 'parts') {
                 setParts(prev => {
                     const exists = prev.find(i => i.id === newItem.id);
-                    if (exists) return prev.map(i => i.id === newItem.id ? newItem : i);
-                    return [newItem, ...prev];
-                });
-            } else if (result.type === 'part_library') {
-                setPartLibrary(prev => {
-                    const exists = prev.find(i => i.id === newItem.id);
-                    if (exists) return prev.map(i => i.id === newItem.id ? newItem : i);
-                    return [newItem, ...prev];
+                    const updated = exists 
+                        ? prev.map(i => i.id === newItem.id ? newItem : i)
+                        : [...prev, newItem];
+                    return [...updated].sort((a, b) => a.name.localeCompare(b.name));
                 });
             }
         } else if (result?.success) {
@@ -84,12 +83,10 @@ export default function InventoryClient({
         if (type === 'services') res = await deleteMasterService(id);
         else if (type === 'parts') res = await deleteMasterPart(id);
         else if (type === 'cars') res = await deleteCarLibraryItem(id);
-        else if (type === 'library') res = await deletePartLibraryItem(id);
 
         if (res?.success) {
             if (type === 'services') setServices(prev => prev.filter(i => i.id !== id));
             else if (type === 'parts') setParts(prev => prev.filter(i => i.id !== id));
-            else if (type === 'library') setPartLibrary(prev => prev.filter(i => i.id !== id));
             else if (type === 'cars') setCarLibrary(prev => prev.filter(i => i.id !== id));
         } else if (res?.error) {
             alert(res.error);
@@ -98,13 +95,24 @@ export default function InventoryClient({
 
     return (
         <>
-            <div className="flex justify-end mb-6">
+            <div className="flex justify-end mb-6 gap-3">
+                {tab === 'parts' && (
+                    <button
+                        type="button"
+                        onClick={() => setIsManageCategoriesOpen(true)}
+                        className="btn flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-primary/25 hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
+                        style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: '#ffffff', border: 'none' }}
+                    >
+                        <Layers size={18} />
+                        MANAGE CATEGORIES
+                    </button>
+                )}
                 <button
                     onClick={handleAddNew}
                     className="btn btn-primary flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-primary/25 hover:shadow-xl hover:scale-[1.02] transition-all"
                 >
                     <Plus size={18} />
-                    NEW {tab === 'services' ? 'SERVICE' : tab === 'cars' ? 'VEHICLE' : tab === 'library' ? 'LIBRARY PART' : 'PART'}
+                    NEW {tab === 'services' ? 'SERVICE' : tab === 'cars' ? 'VEHICLE' : 'PART'}
                 </button>
             </div>
 
@@ -125,13 +133,6 @@ export default function InventoryClient({
                     Parts Inventory
                 </button>
                 <button
-                    onClick={() => setTab('library')}
-                    className={`tab ${tab === 'library' ? 'active' : ''}`}
-                >
-                    <Layers size={16} />
-                    Part Library
-                </button>
-                <button
                     onClick={() => setTab('cars')}
                     className={`tab ${tab === 'cars' ? 'active' : ''}`}
                 >
@@ -142,19 +143,38 @@ export default function InventoryClient({
 
             <div className="grid grid-cols-1 gap-8">
                 {tab === 'services' && <ServiceInventoryList key="services" initialServices={services} onEdit={handleEdit} onDelete={(id) => handleDelete(id, 'services')} />}
-                {tab === 'parts' && <PartInventoryList key="parts" initialParts={parts} onEdit={handleEdit} onDelete={(id) => handleDelete(id, 'parts')} />}
-                {tab === 'library' && <PartLibraryList key="library" libraryParts={partLibrary} onEdit={handleEdit} onDelete={(id) => handleDelete(id, 'library')} />}
+                {tab === 'parts' && (
+                    <PartInventoryList
+                        initialParts={parts}
+                        categories={categories}
+                        onEdit={handleEdit}
+                        onDelete={(id) => handleDelete(id, 'parts')}
+                    />
+                )}
                 {tab === 'cars' && <CarLibraryList key="cars" initialLibrary={carLibrary} onEdit={handleEdit} onDelete={(id) => handleDelete(id, 'cars')} />}
             </div>
 
-            <InventoryModal
-                isOpen={isModalOpen}
-                onClose={() => handleModalClose()}
-                onSuccess={(data) => handleModalClose({ success: true, data, type: tab === 'library' ? 'part_library' : tab })}
-                type={tab === 'library' ? 'part_library' : tab === 'cars' ? 'cars' : tab as any}
-                initialData={editingItem}
-                brands={initialBrands}
-            />
+            {isModalOpen && (
+                <InventoryModal
+                    isOpen={isModalOpen}
+                    onClose={() => handleModalClose()}
+                    onSuccess={(data) => handleModalClose({ success: true, data, type: tab })}
+                    type={tab === 'cars' ? 'cars' : tab as any}
+                    initialData={editingItem}
+                    brands={initialBrands}
+                    categories={categories}
+                />
+            )}
+
+            {isManageCategoriesOpen && (
+                <ManageCategoriesModal 
+                    categories={categories}
+                    onClose={(res) => {
+                        setIsManageCategoriesOpen(false);
+                        if (res?.success) router.refresh();
+                    }}
+                />
+            )}
         </>
     );
 }
