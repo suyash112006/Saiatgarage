@@ -6,6 +6,7 @@ import { Suspense } from 'react';
 import DashboardStats from '@/components/DashboardStats';
 import RecentActivity from '@/components/RecentActivity';
 import { StatsSkeleton, RecentActivitySkeleton } from '@/components/DashboardSkeletons';
+import { getRecentActivity } from '@/app/actions/search';
 
 export default async function DashboardPage() {
     const [session, recentActivity] = await Promise.all([
