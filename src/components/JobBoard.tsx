@@ -2,8 +2,9 @@ import { getSession } from '@/app/actions/auth';
 import db from '@/lib/db';
 import JobRow from '@/components/JobRow';
 import { Clock } from 'lucide-react';
+import { cache } from 'react';
 
-async function getJobs(status?: string, role?: string, userId?: number) {
+const getJobs = cache(async (status?: string, role?: string, userId?: number) => {
     let query = `
     SELECT j.*, c.name as customer_name, v.model, v.vehicle_number, u.name as mechanic_name
     FROM job_cards j
@@ -38,7 +39,7 @@ async function getJobs(status?: string, role?: string, userId?: number) {
 
     const res = await db.query(query, params);
     return res.rows;
-}
+});
 
 interface JobBoardProps {
     status: string;

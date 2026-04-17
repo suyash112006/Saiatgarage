@@ -2,12 +2,13 @@
 
 import db, { getDbProvider } from '@/lib/db';
 import { getSession } from '@/app/actions/auth';
+import { cache } from 'react';
 
 /**
  * Get analytics dashboard overview
  * Admin-only access
  */
-export async function getAnalyticsDashboard() {
+export const getAnalyticsDashboard = cache(async () => {
     const session = await getSession();
     if (session?.role !== 'admin') return { error: 'Admin access required' };
 
@@ -77,7 +78,7 @@ export async function getAnalyticsDashboard() {
         console.error('Analytics dashboard error:', err);
         return { error: `Failed to load analytics: ${err.message}` };
     }
-}
+});
 
 /**
  * Get daily revenue for a specific date

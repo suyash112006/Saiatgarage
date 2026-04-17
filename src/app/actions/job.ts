@@ -215,25 +215,25 @@ export async function updateJob(formData: FormData) {
 }
 
 // Phase 2: Services & Parts
-export async function getMasterServices() {
+export const getMasterServices = cache(async () => {
     const res = await db.query('SELECT * FROM services ORDER BY name ASC');
     return res.rows;
-}
+});
 
-export async function getMasterParts() {
+export const getMasterParts = cache(async () => {
     const res = await db.query('SELECT * FROM parts ORDER BY name');
     return res.rows;
-}
+});
 
 export interface Mechanic {
     id: number;
     name: string;
 }
 
-export async function getMechanics(): Promise<Mechanic[]> {
+export const getMechanics = cache(async (): Promise<Mechanic[]> => {
     const res = await db.query("SELECT id, name FROM users WHERE role = 'mechanic' AND is_active = 1");
     return res.rows as Mechanic[];
-}
+});
 
 export async function assignMechanic(jobId: number, mechanicId: number) {
     const session = await getSession();

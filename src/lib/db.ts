@@ -52,14 +52,19 @@ const initPostgres = () => {
         const isSslRequired = process.env.DATABASE_URL?.includes('sslmode=require') || 
                             process.env.DATABASE_URL?.includes('neon.tech');
 
+        const isVercel = !!process.env.VERCEL;
+        
         pool = new Pool({
             connectionString: process.env.DATABASE_URL,
             ssl: isSslRequired ? {
                 rejectUnauthorized: false,
             } : false,
-            max: 20, // Increased for parallel queries
+            // Serverless optimization: 
+            // - Low max connections (1-2) per lambda prevents DB exhaustion
+            // - Increased connection timeout for cold starts
+            max: isVercel ? 2 : 20, 
             idleTimeoutMillis: 30000, 
-            connectionTimeoutMillis: 10000, 
+            connectionTimeoutMillis: isVercel ? 15000 : 10000, 
         });
 
         pool.on('error', (err) => {

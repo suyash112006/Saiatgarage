@@ -4,8 +4,9 @@ import db from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { updateJobTotals } from '@/lib/job-utils';
 import { getSession } from '@/app/actions/auth';
+import { cache } from 'react';
 
-export async function getGeneralSettings() {
+export const getGeneralSettings = cache(async () => {
     try {
         const res = await db.query('SELECT key, value FROM settings');
         const settings: Record<string, string> = {};
@@ -15,7 +16,7 @@ export async function getGeneralSettings() {
         console.error('Error fetching settings:', err);
         return { error: 'Failed to fetch settings', settings: {} as Record<string, string> };
     }
-}
+});
 
 export async function updateGeneralSettings(formData: FormData) {
     // ─── Admin only ───

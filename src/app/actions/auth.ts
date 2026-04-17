@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers';
 import db from '@/lib/db';
 import { redirect } from 'next/navigation';
+import { cache } from 'react';
 
 export async function loginAction(formData: FormData) {
     const email = formData.get('email') as string;
@@ -68,7 +69,7 @@ export async function logoutAction() {
     redirect('/login');
 }
 
-export async function getSession() {
+export const getSession = cache(async () => {
     const cookieStore = await cookies();
     const session = cookieStore.get('session');
     if (!session) return null;
@@ -77,7 +78,7 @@ export async function getSession() {
     } catch {
         return null;
     }
-}
+});
 
 export async function signupAction(formData: FormData) {
     const name = formData.get('name') as string;

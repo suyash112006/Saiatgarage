@@ -3,6 +3,7 @@
 import db from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/app/actions/auth';
+import { cache } from 'react';
 
 /**
  * SERVICES Master Catalog
@@ -152,7 +153,7 @@ export async function deleteMasterPart(id: number) {
  * CAR LIBRARY (Brand -> Models)
  */
 
-export async function getCarLibrary() {
+export const getCarLibrary = cache(async () => {
     try {
         const res = await db.query(`
             SELECT m.id, b.name as brand, m.name as model 
@@ -165,7 +166,7 @@ export async function getCarLibrary() {
         console.error('Error fetching car library:', err);
         return [];
     }
-}
+});
 
 export async function getVehicleBrands() {
     try {
@@ -259,7 +260,7 @@ export async function deleteCarLibraryItem(id: number) {
  * PART LIBRARY (Master definitions)
  */
 
-export async function getPartLibrary() {
+export const getPartLibrary = cache(async () => {
     try {
         const res = await db.query('SELECT * FROM part_library ORDER BY name');
         return res.rows;
@@ -267,7 +268,7 @@ export async function getPartLibrary() {
         console.error('Error fetching part library:', err);
         return [];
     }
-}
+});
 
 export async function addPartLibraryItem(formData: FormData) {
     const session = await getSession();
@@ -334,7 +335,7 @@ export async function deletePartLibraryItem(id: number) {
  * PART CATEGORIES
  */
 
-export async function getPartCategories() {
+export const getPartCategories = cache(async () => {
     try {
         // Auto-create table if missing
         await db.query(`
@@ -367,7 +368,7 @@ export async function getPartCategories() {
         console.error("Error fetching categories:", err);
         return { success: false, data: [] };
     }
-}
+});
 
 export async function addPartCategory(formData: FormData) {
     const session = await getSession();
