@@ -172,7 +172,6 @@ export default function ManageCategoriesModal({
                             className="input-wrapper" 
                             style={{ height: '44px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', padding: '0 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px' }}
                         >
-                            <Plus size={18} style={{ color: 'var(--text-muted)' }} />
                             <span style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 500 }}>Add New Category...</span>
                         </div>
                     )}
