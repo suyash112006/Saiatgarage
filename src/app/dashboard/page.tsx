@@ -14,6 +14,8 @@ export default async function DashboardPage() {
     ]);
 
     if (!session) redirect('/login');
+    
+    return (
         <div className="dashboard-container">
             <nav className="breadcrumbs mb-4">
                 <span className="breadcrumb-item active text-primary font-bold">Dashboard Overview</span>
