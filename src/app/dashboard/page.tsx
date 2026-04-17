@@ -8,10 +8,12 @@ import RecentActivity from '@/components/RecentActivity';
 import { StatsSkeleton, RecentActivitySkeleton } from '@/components/DashboardSkeletons';
 
 export default async function DashboardPage() {
-    const session = await getSession();
-    if (!session) redirect('/login');
+    const [session, recentActivity] = await Promise.all([
+        getSession(),
+        getRecentActivity()
+    ]);
 
-    return (
+    if (!session) redirect('/login');
         <div className="dashboard-container">
             <nav className="breadcrumbs mb-4">
                 <span className="breadcrumb-item active text-primary font-bold">Dashboard Overview</span>
@@ -38,9 +40,7 @@ export default async function DashboardPage() {
                 </Link>
             </div>
 
-            <Suspense fallback={<RecentActivitySkeleton />}>
-                <RecentActivity />
-            </Suspense>
+            <RecentActivity initialActivity={recentActivity} />
 
             <Suspense fallback={<StatsSkeleton />}>
                 <DashboardStats role={session.role} userId={session.id} />
