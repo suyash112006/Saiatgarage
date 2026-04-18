@@ -29,31 +29,34 @@ export async function createJob(formData: FormData) {
             return { error: `KM Reading cannot be less than previous recording (${vehicle.last_km} KM)` };
         }
 
-        // 1. Get next Job Number (YYYYMMDD-SEQ format)
+        // 1. Get next Job Number (YYYYMMDD-1 format)
         const now = new Date();
-        const istDate = new Intl.DateTimeFormat('en-IN', {
+        const formatter = new Intl.DateTimeFormat('en-CA', {
             timeZone: 'Asia/Kolkata',
             year: 'numeric',
             month: '2-digit',
             day: '2-digit'
-        }).format(now).split('/').reverse().join(''); // Converts DD/MM/YYYY to YYYYMMDD
+        });
+        const istDate = formatter.format(now).replace(/-/g, '');
         
         const lastJobRes = await db.query(`
             SELECT job_no FROM job_cards 
-            WHERE job_no LIKE $1 || '-%' AND deleted_at IS NULL
-            ORDER BY job_no DESC LIMIT 1
+            WHERE job_no LIKE $1 || '-%'
+            ORDER BY id DESC LIMIT 1
         `, [istDate]);
         
         let nextSeq = 1;
-        if (lastJobRes.rows[0]) {
+        if (lastJobRes.rows[0] && lastJobRes.rows[0].job_no) {
             const parts = lastJobRes.rows[0].job_no.split('-');
-            const lastSeq = parseInt(parts[1]);
-            if (!isNaN(lastSeq)) {
-                nextSeq = lastSeq + 1;
+            if (parts.length > 1) {
+                const lastSeq = parseInt(parts[parts.length - 1], 10);
+                if (!isNaN(lastSeq)) {
+                    nextSeq = lastSeq + 1;
+                }
             }
         }
         
-        const nextJobNo = `${istDate}-${nextSeq.toString().padStart(2, '0')}`;
+        const nextJobNo = `${istDate}-${nextSeq}`;
 
         // 2. Create Job Card
         const jobRes = await db.query(`

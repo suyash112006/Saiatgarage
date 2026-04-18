@@ -3,8 +3,6 @@ import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import InventoryWrapper from '@/components/inventory/InventoryWrapper';
 
-export const dynamic = 'force-dynamic';
-
 export default async function InventoryPage(props: { searchParams: Promise<{ tab?: string }> }) {
     const session = await getSession();
     if (session?.role !== 'admin') {

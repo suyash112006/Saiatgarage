@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import { Suspense } from 'react';
 import JobBoard from '@/components/JobBoard';
 
-export const dynamic = 'force-dynamic';
+// Optimized
 
 export default async function JobsPage(props: { searchParams: Promise<{ status?: string }> }) {
     const searchParams = await props.searchParams;

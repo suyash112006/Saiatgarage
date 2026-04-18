@@ -6,9 +6,13 @@ import { Search, Bell, Moon, Sun, Check, X, Clock, FileText, User, Car, ChevronR
 import { updateUserTheme } from '@/app/actions/user';
 import { getUnreadNotifications, markNotificationRead, markAllNotificationsRead } from '@/app/actions/notification';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import BackButton from './BackButton';
-import NotificationModal from './NotificationModal';
+
+const NotificationModal = dynamic(() => import('./NotificationModal'), { 
+  ssr: false 
+});
 
 export default function TopBar({ user }: { user: any }) {
   console.log('TopBar rendered', { user });

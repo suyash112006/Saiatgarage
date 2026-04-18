@@ -61,11 +61,11 @@ const initPostgres = () => {
                 rejectUnauthorized: false,
             } : false,
             // Serverless optimization: 
-            // - Low max connections (1-2) per lambda prevents DB exhaustion
-            // - Increased connection timeout for cold starts
-            max: isVercel ? 2 : 20, 
-            idleTimeoutMillis: 30000, 
-            connectionTimeoutMillis: isVercel ? 15000 : 10000, 
+            // - Low max connections (1-4) per lambda prevents DB exhaustion
+            // - Optimized connection timeouts for faster cold-start feedback
+            max: isVercel ? 4 : 20, 
+            idleTimeoutMillis: 10000, // Reduced from 30s to 10s
+            connectionTimeoutMillis: isVercel ? 5000 : 2000, // Significantly faster timeouts
         });
 
         pool.on('error', (err) => {

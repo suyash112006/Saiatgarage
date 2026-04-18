@@ -13,7 +13,7 @@ import {
 import { Suspense } from 'react';
 import ReportsSummary from '@/components/reports/ReportsSummary';
 
-export const dynamic = 'force-dynamic';
+// Optimized for speed
 
 export default async function ReportsPage() {
     const session = await getSession();

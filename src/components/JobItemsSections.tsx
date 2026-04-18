@@ -3,10 +3,16 @@
 import { useState } from 'react';
 import { Pencil, X as Close } from 'lucide-react';
 import { Settings, Cpu } from 'lucide-react';
-import AddServiceForm from '@/components/AddServiceForm';
-import AddPartForm from '@/components/AddPartForm';
+import dynamic from 'next/dynamic';
 import SortableItemList from '@/components/SortableItemList';
 import CollapsibleSection from '@/components/CollapsibleSection';
+
+const AddServiceForm = dynamic(() => import('@/components/AddServiceForm'), { 
+    loading: () => <div className="h-10 w-32 animate-pulse bg-slate-100 rounded-lg"></div> 
+});
+const AddPartForm = dynamic(() => import('@/components/AddPartForm'), { 
+    loading: () => <div className="h-10 w-32 animate-pulse bg-slate-100 rounded-lg"></div> 
+});
 
 interface Props {
     jobId: number;
