@@ -52,7 +52,11 @@ export async function loginAction(formData: FormData) {
         const session = JSON.stringify(sessionData);
 
         const cookieStore = await cookies();
-        cookieStore.set('session', session, { httpOnly: true, path: '/' });
+        cookieStore.set('session', session, { 
+            httpOnly: true, 
+            path: '/',
+            maxAge: 6 * 60 * 60 // 6 hours in seconds
+        });
 
         return { success: true, role: user.role };
     } catch (err: any) {

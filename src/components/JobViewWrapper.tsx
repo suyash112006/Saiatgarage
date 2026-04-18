@@ -346,7 +346,7 @@ export default async function JobViewWrapper({ jobId }: JobViewWrapperProps) {
                     </CollapsibleSection>
                 </div>
 
-                <div className="space-y-6 lg:sticky lg:top-8">
+                <div className="hidden lg:block space-y-6 lg:sticky lg:top-8">
                     {isAdmin && (
                         <div className="card border mb-6 overflow-hidden rounded-[24px]" style={{ borderColor: 'var(--border)' }}>
                             <div className="p-6 border-b" style={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border)' }}>

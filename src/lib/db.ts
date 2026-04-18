@@ -50,6 +50,7 @@ const initPostgres = () => {
         // SSL configuration: ensure we avoid the 'prefer/require aliasing' warning
         // by being explicit about the SSL requirement.
         const isSslRequired = process.env.DATABASE_URL?.includes('sslmode=require') || 
+                            process.env.DATABASE_URL?.includes('sslmode=verify-full') ||
                             process.env.DATABASE_URL?.includes('neon.tech');
 
         const isVercel = !!process.env.VERCEL;
